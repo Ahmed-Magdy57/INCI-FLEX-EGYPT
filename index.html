@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INCI-FLEXEGYPT - نظام إدارة التصاميم</title>
+    <!-- إضافة مكتبات للتصدير -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --header-bg: rgba(255, 255, 255, 0.95);
+            --footer-bg: rgba(255, 255, 255, 0.9);
+            --text-primary: #333;
+            --text-secondary: #666;
+            --card-bg: white;
+            --border-color: #e0e0e0;
+            --hover-bg: #f8f9ff;
+            --shadow-color: rgba(0,0,0,0.1);
+            --input-bg: white;
+            --stat-card-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --modal-bg: white;
+            --notes-bg: #fff9e6;
+            --footer-text: #333;
+        }
+
+        body.dark-mode {
+            --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --header-bg: rgba(26, 26, 46, 0.95);
+            --footer-bg: rgba(26, 26, 46, 0.9);
+            --text-primary: #fff;
+            --text-secondary: #ccc;
+            --card-bg: #1e1e2f;
+            --border-color: #333;
+            --hover-bg: #2a2a3a;
+            --shadow-color: rgba(0,0,0,0.3);
+            --input-bg: #2a2a3a;
+            --stat-card-bg: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+            --modal-bg: #1e1e2f;
+            --notes-bg: #2a2a3a;
+            --footer-text: #fff;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        header {
+            background: var(--header-bg);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px var(--shadow-color);
+            animation: slideDown 0.8s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        header::before {
+            content: 'ﷺ';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            font-size: 150px;
+            opacity: 0.03;
+            transform: rotate(15deg);
+            color: #667eea;
+            font-family: 'Traditional Arabic', 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logo-section:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8em;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            animation: logoPulse 2s infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-text h2 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .logo-text p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 2px solid #667eea;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px var(--shadow-color);
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(45deg) scale(1.1);
+            background: #667eea;
+            color: white;
+        }
+
+        .salawat-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .salawat-container {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .salawat-container:hover {
+            transform: scale(1.05);
+        }
+
+        .salawat-text {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .kaaba-icon {
+            font-size: 1.5em;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        .salawat-counter {
+            background: white;
+            color: #667eea;
+            padding: 5px 15px;
+            border-radius: 30px;
+            margin-right: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .reset-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .reset-button:hover {
+            transform: rotate(180deg) scale(1.1);
+            background: #f0f0f0;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card {
+            background: var(--stat-card-bg);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s infinite;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: translateX(-100%);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            100% { transform: translateX(100%); }
+        }
+
+        .stat-card .stat-number {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .export-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 2px solid #667eea;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px var(--shadow-color);
+            background: #667eea;
+            color: white;
+        }
+
+        .export-btn.excel:hover {
+            background: #1D6F42;
+            border-color: #1D6F42;
+        }
+
+        .export-btn.pdf:hover {
+            background: #F40F02;
+            border-color: #F40F02;
+        }
+
+        .backup-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+        }
+
+        .restore-btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+        }
+
+        /* زر فتح القفل */
+        .unlock-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid transparent;
+        }
+
+        .unlock-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 75, 75, 0.4);
+            border-color: white;
+        }
+
+        .unlock-btn.locked {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
+        /* نافذة كلمة المرور */
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .password-container {
+            background: var(--modal-bg);
+            padding: 40px;
+            border-radius: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: modalSlideIn 0.4s ease;
+            border: 2px solid #667eea;
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.5);
+        }
+
+        .password-container h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .password-container input {
+            width: 100%;
+            padding: 15px;
+            margin: 20px 0;
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            font-size: 1.1em;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .password-container input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .password-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .password-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .password-btn.submit {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .password-btn.cancel {
+            background: #ff4444;
+            color: white;
+        }
+
+        .password-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .lock-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: lockShake 3s infinite;
+        }
+
+        @keyframes lockShake {
+            0%, 100% { transform: scale(1); }
+            5%, 15% { transform: scale(1.1) rotate(5deg); }
+            10%, 20% { transform: scale(1.1) rotate(-5deg); }
+        }
+
+        .input-section, .filter-section, .export-toolbar, .edit-btn, .delete-btn, .btn-submit, .backup-btn, .restore-btn, .status-badge[onclick] {
+            transition: all 0.3s ease;
+        }
+
+        .input-section.disabled, .filter-section.disabled, .export-toolbar.disabled {
+            opacity: 0.7;
+            pointer-events: none;
+            user-select: none;
+            position: relative;
+        }
+
+        .input-section.disabled::after, .filter-section.disabled::after, .export-toolbar.disabled::after {
+            content: '🔒';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5em;
+            opacity: 0.3;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .edit-btn.disabled, .delete-btn.disabled, .btn-submit.disabled, .status-badge.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        .locked-badge {
+            background: #ff4444;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-right: 10px;
+        }
+
+        .input-section {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            animation: slideUp 0.6s ease;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .input-title {
+            font-size: 1.5em;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .surface-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .surface-badge.sathi {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .surface-badge.aksi {
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+        }
+
+        .designer-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+        }
+
+        .notes-field {
+            background-color: var(--notes-bg);
+            border-color: #ffd700;
+        }
+
+        .default-notes-hint {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .default-notes-hint span {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .btn-submit, .btn-edit-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit:hover, .btn-edit-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .filter-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px var(--shadow-color);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .filter-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            min-width: 250px;
+        }
+
+        .filter-select {
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1em;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            min-width: 150px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            animation: fadeInUp 0.8s ease;
+            margin-bottom: 30px;
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+            animation: cardAppear 0.6s ease forwards;
+            opacity: 0;
+            transform: translateY(30px);
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes cardAppear {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card:hover {
+            transform: translateY(-15px) scale(1.02);
+            box-shadow: 0 20px 40px var(--shadow-color);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255,255,255,0.1);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: rotate(45deg) translateX(-100%); }
+            100% { transform: rotate(45deg) translateX(100%); }
+        }
+
+        .card-header h3 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .order-id {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .info-row:hover {
+            background: var(--hover-bg);
+            padding: 10px 15px;
+            margin: 0 -15px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            display: inline-block;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.8); }
+            100% { box-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 0.95em;
+        }
+
+        .status-badge:not(.disabled) {
+            cursor: pointer;
+        }
+
+        .status-done {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3);
+        }
+
+        .status-badge:not(.disabled):hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .edit-btn, .delete-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .edit-btn:not(.disabled) {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            cursor: pointer;
+        }
+
+        .edit-btn:not(.disabled):hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: scale(1.05);
+        }
+
+        .delete-btn:not(.disabled) {
+            background: #ff4444;
+            color: white;
+            cursor: pointer;
+        }
+
+        .delete-btn:not(.disabled):hover {
+            background: #cc0000;
+            transform: scale(1.05);
+        }
+
+        /* تنسيق نافذة التفاصيل */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--modal-bg);
+            width: 50%;
+            height: 80%;
+            margin: 5% auto;
+            border-radius: 25px;
+            overflow: hidden;
+            animation: modalSlideIn 0.4s ease;
+            box-shadow: 0 25px 50px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-100px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5em;
+            margin: 0;
+            padding-left: 30px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 28px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex-grow: 1;
+            scrollbar-width: thin;
+            scrollbar-color: #667eea var(--border-color);
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+        }
+
+        .details-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--hover-bg), var(--card-bg));
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+        }
+
+        .detail-row:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .detail-row.highlight {
+            background: linear-gradient(135deg, #e8edff, var(--card-bg));
+            border-right: 5px solid #667eea;
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+            background: var(--input-bg);
+            padding: 8px 25px;
+            border-radius: 30px;
+            min-width: 200px;
+            text-align: center;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            font-size: 1.05em;
+            border: 1px solid var(--border-color);
+        }
+
+        .notes-value {
+            background: var(--notes-bg);
+            color: #b85c00;
+            max-width: 300px;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .date-badge {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+            color: white;
+            padding: 8px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,176,155,0.3);
+        }
+
+        .surface-detail {
+            background: var(--input-bg);
+            padding: 8px 25px;
+            border-radius: 30px;
+            font-weight: bold;
+        }
+
+        .edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .edit-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .edit-field label {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .edit-field input, .edit-field select, .edit-field textarea {
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1em;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .edit-field textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 50px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            color: var(--text-secondary);
+            font-size: 1.2em;
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .footer {
+            background: var(--footer-bg);
+            backdrop-filter: blur(10px);
+            padding: 30px 20px;
+            border-radius: 20px;
+            margin-top: 30px;
+            box-shadow: 0 -5px 30px var(--shadow-color);
+            animation: slideUp 0.8s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .footer-section h3 {
+            color: var(--text-primary);
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            position: relative;
+        }
+
+        .footer-section h3::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 50px;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: var(--hover-bg);
+        }
+
+        .contact-item:hover {
+            transform: translateX(-5px);
+            color: #667eea;
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+        }
+
+        .contact-icon {
+            font-size: 1.3em;
+            color: #667eea;
+        }
+
+        .contact-text {
+            font-size: 1.1em;
+        }
+
+        .contact-text small {
+            display: block;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .email-line {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+
+        .services-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .services-list li {
+            margin-bottom: 12px;
+            padding: 10px 15px;
+            background: var(--hover-bg);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            border-right: 3px solid transparent;
+        }
+
+        .services-list li:hover {
+            border-right-color: #667eea;
+            transform: translateX(-5px);
+            background: linear-gradient(135deg, #667eea10, #764ba210);
+        }
+
+        .services-list li strong {
+            color: #667eea;
+        }
+
+        .contact-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .contact-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .copyright-section {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding-top: 20px;
+            margin-top: 20px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .copyright-section p {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .copyright-icon {
+            font-size: 1.2em;
+            color: #667eea;
+            animation: pulse 2s infinite;
+        }
+
+        .designer-name {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 0 5px;
+        }
+
+        .no-copy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ff444420;
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: #ff4444;
+            font-size: 0.9em;
+            border: 1px solid #ff4444;
+        }
+
+        .custom-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            z-index: 9999;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .custom-notification.success {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
+        .custom-notification.error {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .custom-notification.info {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+        }
+
+        .custom-notification.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 999;
+            border: none;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .cards-grid { grid-template-columns: 1fr; }
+            .stats-container { grid-template-columns: 1fr; }
+            .modal-content { width: 95%; height: 90%; margin: 2% auto; }
+            .header-content { flex-direction: column; text-align: center; }
+            .logo-section { justify-content: center; }
+            .salawat-section { width: 100%; justify-content: center; }
+            .footer-content { grid-template-columns: 1fr; }
+            .detail-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .detail-value { width: 100%; }
+            .export-toolbar { justify-content: center; }
+            .radio-group { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-section" onclick="scrollToTop()" title="العودة للرئيسية">
+                    <div class="logo-icon">
+                        <img src="incy.png.jpg" alt="Logo" style="width: 50px; height: 50px; border-radius: 20px;" onerror="this.style.display='none'; this.parentElement.innerHTML='IF'">
+                    </div>
+                    <div class="logo-text">
+                        <h2>Incl-Flex</h2>
+                        <p>PREPRESS SOLUTIONS FOR PACKAGING</p>
+                    </div>
+                </div>
+                <div class="header-controls">
+                    <button class="theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌓</button>
+                    <div class="salawat-section">
+                        <div class="salawat-container" onclick="increaseSalawat()">
+                            <div class="salawat-text">
+                                <span class="kaaba-icon">🕋</span>
+                                صلي علي النبي ﷺ
+                                <span class="salawat-counter" id="salawatCount">0</span>
+                            </div>
+                        </div>
+                        <button class="reset-button" onclick="resetSalawat()" title="إعادة تعيين العداد">↻</button>
+                    </div>
+                    <!-- زر فتح/قفل التعديل -->
+                    <button class="unlock-btn locked" id="unlockBtn" onclick="toggleLock()">
+                        <span id="lockIcon">🔒</span>
+                        <span id="lockText">مقفل</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="export-toolbar" id="exportToolbar">
+                <button class="export-btn excel" onclick="checkAccessAndExecute('exportToExcel')"><span>📊</span> تصدير Excel</button>
+                <button class="export-btn pdf" onclick="checkAccessAndExecute('exportToPDF')"><span>📄</span> تصدير PDF</button>
+                <button class="export-btn backup-btn" onclick="checkAccessAndExecute('backupData')"><span>💾</span> نسخ احتياطي</button>
+                <button class="export-btn restore-btn" onclick="checkAccessAndExecute('restoreData')"><span>↩️</span> استعادة البيانات</button>
+            </div>
+            
+            <div class="stats-container" id="statsContainer"></div>
+        </header>
+
+        <!-- قسم إدخال البيانات مع الحقل الجديد Designer -->
+        <div class="input-section" id="inputSection">
+            <h2 class="input-title">➕ إضافة تصميم جديد</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>🔢 اسم الاوردر</label>
+                    <input type="text" id="orderName" placeholder="أدخل اسم الاوردر">
+                </div>
+                <div class="form-group">
+                    <label>🏭 اسم الشركة</label>
+                    <input type="text" id="companyName" placeholder="أدخل اسم الشركة">
+                </div>
+                <div class="form-group">
+                    <label>📏 السمك (mm)</label>
+                    <input type="number" id="thickness" step="0.01" placeholder="مثال: 2.54">
+                </div>
+                <div class="form-group">
+                    <label>🎨 عدد الألوان</label>
+                    <input type="number" id="color" min="1" placeholder="عدد الألوان">
+                </div>
+                <div class="form-group">
+                    <label>📐 الارتفاع</label>
+                    <input type="number" id="height" step="0.1" placeholder="الارتفاع">
+                </div>
+                <div class="form-group">
+                    <label>📏 العرض</label>
+                    <input type="number" id="width" step="0.1" placeholder="العرض">
+                </div>
+                <div class="form-group">
+                    <label>🖨️ Rep Py</label>
+                    <select id="repPy">
+                        <option value="fat7y">fat7y</option>
+                        <option value="jana">jana</option>
+                        <option value="nourhan">nourhan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>🎨 المصمم</label>
+                    <select id="designer">
+                        <option value="Marwan Elshnawy">Marwan Elshnawy</option>
+                        <option value="Metwaly">Metwaly</option>
+                        <option value="Mohand">Mohand</option>
+                        <option value="Karim">Karim</option>
+                        <option value="Abdelrhman okaz">Abdelrhman okaz</option>
+                        <option value="saif">saif</option>
+                        <option value="Ahmed Beso">Ahmed Beso</option>
+                        <option value="Hany">Hany</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>🔲 نوع السطح</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="sathi" name="surfaceType" value="سطحي" checked>
+                            <label for="sathi">سطحي</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="aksi" name="surfaceType" value="عكسي">
+                            <label for="aksi">عكسي</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>📝 ملاحظات</label>
+                    <textarea id="notes" class="notes-field">تصميم جاهز للتسليم - تمت مراجعته من قبل AhmedMagdy</textarea>
+                    <div class="default-notes-hint"><span>افتراضي</span> هذه الرسالة محددة مسبقاً ويمكنك تعديلها</div>
+                </div>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="isDone" checked>
+                <label for="isDone">✅ تم الانتهاء</label>
+            </div>
+            <button class="btn-submit" id="submitBtn" onclick="checkAccessAndExecute('addNewDesign')">إضافة التصميم</button>
+        </div>
+
+        <!-- قسم البحث مع إضافة فلتر المصمم -->
+        <div class="filter-section" id="filterSection">
+            <input type="text" class="filter-input" id="searchInput" placeholder="🔍 بحث بالشركة...">
+            <select class="filter-select" id="designerFilter" onchange="checkAccessAndExecute('filterByDesigner')">
+                <option value="all">جميع المصممين</option>
+                <option value="Marwan Elshnawy">Marwan Elshnawy</option>
+                <option value="Metwaly">Metwaly</option>
+                <option value="Mohand">Mohand</option>
+                <option value="Karim">Karim</option>
+                <option value="Abdelrhman okaz">Abdelrhman okaz</option>
+                <option value="saif">saif</option>
+                <option value="Ahmed Beso">Ahmed Beso</option>
+                <option value="Hany">Hany</option>
+            </select>
+            <select class="filter-select" id="repPyFilter" onchange="checkAccessAndExecute('filterByRepPy')">
+                <option value="all">جميع Rep Py</option>
+                <option value="fat7y">fat7y</option>
+                <option value="jana">jana</option>
+                <option value="nourhan">nourhan</option>
+            </select>
+            <select class="filter-select" id="surfaceFilter" onchange="checkAccessAndExecute('filterBySurface')">
+                <option value="all">جميع الأسطح</option>
+                <option value="سطحي">سطحي</option>
+                <option value="عكسي">عكسي</option>
+            </select>
+            <select class="filter-select" id="statusFilter" onchange="checkAccessAndExecute('filterByStatus')">
+                <option value="all">جميع الحالات</option>
+                <option value="done">تم الانتهاء</option>
+                <option value="pending">قيد التنفيذ</option>
+            </select>
+        </div>
+
+        <div class="cards-grid" id="cardsContainer"></div>
+    </div>
+
+    <!-- فوتر -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="copyright-section">
+                <p>© 2026 جميع الحقوق محفوظة | تم التصميم والتطوير بواسطة <strong class="designer-name">Ahmed Magdy</strong> <span class="no-copy-badge"><span>🚫</span> عدم التقليد <span>🚫</span></span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- زر العودة للأعلى -->
+    <button class="back-to-top" onclick="scrollToTop()" id="backToTop">⬆️</button>
+
+    <!-- مودال التفاصيل -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+                <h2 id="modalTitle">تفاصيل التصميم</h2>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- مودال التعديل -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeModal('editModal')">×</button>
+                <h2>تعديل التصميم</h2>
+            </div>
+            <div class="modal-body" id="editModalBody"></div>
+        </div>
+    </div>
+
+    <!-- نافذة كلمة المرور -->
+    <div class="password-modal" id="passwordModal">
+        <div class="password-container">
+            <div class="lock-icon">🔒</div>
+            <h2>كلمة المرور</h2>
+            <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور" onkeypress="if(event.key==='Enter') checkPassword()">
+            <div class="password-buttons">
+                <button class="password-btn submit" onclick="checkPassword()">دخول</button>
+                <button class="password-btn cancel" onclick="closePasswordModal()">إلغاء</button>
+            </div>
+            <p style="margin-top: 15px; color: var(--text-secondary); font-size: 0.9em;">كلمة المرور الافتراضية: 1234</p>
+        </div>
+    </div>
+
+    <script>
+        // حماية بسيطة
+        (function() {
+            document.addEventListener('contextmenu', e => { e.preventDefault(); showNotification('❌ لا يمكنك نسخ المحتوى', 'error'); });
+            document.addEventListener('keydown', e => {
+                if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73,74].includes(e.keyCode)) || (e.ctrlKey && [85,67,86,88].includes(e.keyCode))) {
+                    e.preventDefault();
+                    showNotification('❌ هذه العملية غير مسموح بها', 'error');
+                }
+            });
+            setInterval(() => console.clear(), 1000);
+        })();
+
+        // المتغيرات العامة
+        let salawatCounter = 0;
+        let isLocked = true; // النظام مقفل افتراضياً
+        const CORRECT_PASSWORD = "1234"; // كلمة المرور الصحيحة
+        
+        let tableData = [
+            { 
+                no: "4-1-0204", 
+                orderName: "ORD-001",
+                company: "m.a pack - 81", 
+                thickness: "2.54", 
+                color: "1", 
+                startTime: "8:45 PM", 
+                date: "2026-02-27", 
+                height: "14", 
+                width: "3.5", 
+                fullSize: "142", 
+                repPy: "fat7y",
+                designer: "Marwan Elshnawy",
+                surfaceType: "سطحي",
+                notes: "تصميم جاهز للتسليم - تمت مراجعته من قبل AhmedMagdy", 
+                cs: "done" 
+            },
+            { 
+                no: "4-1-0204", 
+                orderName: "ORD-002",
+                company: "hany el atripy - 66", 
+                thickness: "1.14", 
+                color: "1", 
+                startTime: "2:35 PM", 
+                date: "2026-02-27", 
+                height: "59.5", 
+                width: "66", 
+                fullSize: "3927", 
+                repPy: "jana",
+                designer: "Metwaly",
+                surfaceType: "عكسي",
+                notes: "يحتاج مراجعة الألوان والتأكد من مطابقة العينة", 
+                cs: "done" 
+            },
+            { 
+                no: "4-1-0204", 
+                orderName: "ORD-003",
+                company: "hany el atripy - 66", 
+                thickness: "2.54", 
+                color: "2", 
+                startTime: "7:32 PM", 
+                date: "2026-02-27", 
+                height: "29", 
+                width: "13", 
+                fullSize: "754", 
+                repPy: "nourhan",
+                designer: "Mohand",
+                surfaceType: "سطحي",
+                notes: "تم التعديل حسب طلب العميل - إضافة شعار جديد", 
+                cs: "done" 
+            },
+            { 
+                no: "4-1-0204", 
+                orderName: "ORD-004",
+                company: "osama lashin - 61", 
+                thickness: "1.7", 
+                color: "6", 
+                startTime: "2:35 PM", 
+                date: "2026-02-27", 
+                height: "62", 
+                width: "112", 
+                fullSize: "41664", 
+                repPy: "fat7y",
+                designer: "Karim",
+                surfaceType: "عكسي",
+                notes: "في انتظار الموافقة النهائية من العميل - تم إرسال المعاينة", 
+                cs: "pending" 
+            }
+        ];
+
+        // عناصر DOM
+        const cardsContainer = document.getElementById('cardsContainer');
+        const searchInput = document.getElementById('searchInput');
+        const designerFilter = document.getElementById('designerFilter');
+        const repPyFilter = document.getElementById('repPyFilter');
+        const surfaceFilter = document.getElementById('surfaceFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const statsContainer = document.getElementById('statsContainer');
+        const detailModal = document.getElementById('detailModal');
+        const editModal = document.getElementById('editModal');
+        const modalBody = document.getElementById('modalBody');
+        const editModalBody = document.getElementById('editModalBody');
+        const modalTitle = document.getElementById('modalTitle');
+        const inputSection = document.getElementById('inputSection');
+        const filterSection = document.getElementById('filterSection');
+        const exportToolbar = document.getElementById('exportToolbar');
+        const submitBtn = document.getElementById('submitBtn');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const lockIcon = document.getElementById('lockIcon');
+        const lockText = document.getElementById('lockText');
+
+        // دوال مساعدة
+        function showNotification(msg, type) {
+            const notif = document.createElement('div');
+            notif.className = `custom-notification ${type}`;
+            notif.textContent = msg;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        window.scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        window.onscroll = () => {
+            const btn = document.getElementById('backToTop');
+            document.body.scrollTop > 300 || document.documentElement.scrollTop > 300 ? btn.classList.add('show') : btn.classList.remove('show');
+        };
+
+        // عداد الصلاة
+        window.increaseSalawat = () => {
+            salawatCounter++;
+            document.getElementById('salawatCount').textContent = salawatCounter;
+            if (salawatCounter % 10 === 0) showNotification(`🌹 ${salawatCounter} مرة صليت على النبي`, 'success');
+        };
+
+        window.resetSalawat = () => {
+            if (confirm('إعادة تعيين العداد؟')) {
+                salawatCounter = 0;
+                document.getElementById('salawatCount').textContent = '0';
+                showNotification('تم إعادة التعيين', 'info');
+            }
+        };
+
+        // دالة التحقق من الوصول
+        window.checkAccessAndExecute = (funcName) => {
+            if (isLocked) {
+                showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
+                openPasswordModal();
+                return false;
+            }
+            // تنفيذ الدالة المطلوبة
+            if (typeof window[funcName] === 'function') {
+                window[funcName]();
+            } else {
+                console.log(`Function ${funcName} not found`);
+            }
+        };
+
+        // فتح نافذة كلمة المرور
+        window.openPasswordModal = () => {
+            document.getElementById('passwordModal').style.display = 'flex';
+            document.getElementById('passwordInput').focus();
+        };
+
+        window.closePasswordModal = () => {
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('passwordInput').value = '';
+        };
+
+        // التحقق من كلمة المرور
+        window.checkPassword = () => {
+            const password = document.getElementById('passwordInput').value;
+            if (password === CORRECT_PASSWORD) {
+                isLocked = false;
+                updateLockUI();
+                closePasswordModal();
+                showNotification('✅ تم فتح النظام بنجاح', 'success');
+            } else {
+                showNotification('❌ كلمة المرور خطأ', 'error');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        };
+
+        // تبديل حالة القفل
+        window.toggleLock = () => {
+            if (!isLocked) {
+                // إذا كان مفتوحاً، نغلقه بدون كلمة مرور
+                isLocked = true;
+                updateLockUI();
+                showNotification('🔒 تم قفل النظام', 'info');
+            } else {
+                // إذا كان مقفلاً، نطلب كلمة المرور
+                openPasswordModal();
+            }
+        };
+
+        // تحديث واجهة القفل
+        function updateLockUI() {
+            if (isLocked) {
+                // النظام مقفل
+                lockIcon.textContent = '🔒';
+                lockText.textContent = 'مقفل';
+                unlockBtn.classList.add('locked');
+                
+                // تعطيل الأقسام
+                inputSection.classList.add('disabled');
+                filterSection.classList.add('disabled');
+                exportToolbar.classList.add('disabled');
+                submitBtn.classList.add('disabled');
+                
+                // تعطيل أزرار التعديل والحذف في البطاقات (سيتم تطبيقه عند إعادة الرسم)
+            } else {
+                // النظام مفتوح
+                lockIcon.textContent = '🔓';
+                lockText.textContent = 'مفتوح';
+                unlockBtn.classList.remove('locked');
+                
+                // تفعيل الأقسام
+                inputSection.classList.remove('disabled');
+                filterSection.classList.remove('disabled');
+                exportToolbar.classList.remove('disabled');
+                submitBtn.classList.remove('disabled');
+            }
+            
+            // إعادة رسم البطاقات لتطبيق التغييرات على أزرار التعديل والحذف
+            renderCards();
+        }
+
+        // الوضع المظلم
+        window.toggleTheme = () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            showNotification(document.body.classList.contains('dark-mode') ? '🌙 الوضع الليلي' : '☀️ الوضع النهاري', 'info');
+        };
+
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+
+        // تصدير Excel مع إضافة حقل المصمم
+        window.exportToExcel = () => {
+            try {
+                const data = tableData.map(item => ({
+                    'اسم الاوردر': item.orderName,
+                    الشركة: item.company,
+                    السمك: item.thickness + ' mm',
+                    الألوان: item.color,
+                    الوقت: item.startTime,
+                    التاريخ: item.date,
+                    الارتفاع: item.height,
+                    العرض: item.width,
+                    'الحجم الكلي': item.fullSize,
+                    'Rep Py': item.repPy,
+                    'المصمم': item.designer,
+                    'نوع السطح': item.surfaceType,
+                    الحالة: item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
+                    ملاحظات: item.notes || '-'
+                }));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'التصاميم');
+                XLSX.writeFile(wb, `تصاميم_${new Date().toLocaleDateString()}.xlsx`);
+                showNotification('✅ تم التصدير', 'success');
+            } catch { showNotification('❌ خطأ', 'error'); }
+        };
+
+        // تصدير PDF مع إضافة حقل المصمم
+        window.exportToPDF = () => {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text('تقرير التصاميم', 105, 15, { align: 'center' });
+                doc.text(`التاريخ: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
+                doc.autoTable({
+                    head: [['الاوردر', 'الشركة', 'السمك', 'الألوان', 'السطح', 'المصمم', 'الحالة', 'ملاحظات']],
+                    body: tableData.map(item => [item.orderName, item.company, item.thickness + ' mm', item.color, item.surfaceType, item.designer, item.cs === 'done' ? 'تم' : 'قيد التنفيذ', item.notes || '-']),
+                    startY: 30
+                });
+                doc.save(`تصاميم_${new Date().toLocaleDateString()}.pdf`);
+                showNotification('✅ تم التصدير', 'success');
+            } catch { showNotification('❌ خطأ', 'error'); }
+        };
+
+        // نسخ احتياطي
+        window.backupData = () => {
+            localStorage.setItem('flexegypt_backup', JSON.stringify({ data: tableData, salawatCounter, date: new Date().toISOString() }));
+            showNotification('✅ تم النسخ', 'success');
+        };
+
+        window.restoreData = () => {
+            const backup = localStorage.getItem('flexegypt_backup');
+            if (!backup) return showNotification('❌ لا يوجد نسخ', 'warning');
+            const restored = JSON.parse(backup);
+            if (confirm(`استعادة من ${new Date(restored.date).toLocaleString()}؟`)) {
+                tableData = restored.data;
+                salawatCounter = restored.salawatCounter || 0;
+                document.getElementById('salawatCount').textContent = salawatCounter;
+                renderCards();
+                updateStats();
+                showNotification('✅ تم الاستعادة', 'success');
+            }
+        };
+
+        // تحديث الإحصائيات
+        function updateStats() {
+            statsContainer.innerHTML = `
+                <div class="stat-card"><div class="stat-number">${tableData.length}</div><div class="stat-label">📦 إجمالي التصاميم</div></div>
+                <div class="stat-card"><div class="stat-number">${[...new Set(tableData.map(i => i.company))].length}</div><div class="stat-label">🏭 عدد الشركات</div></div>
+                <div class="stat-card"><div class="stat-number">${tableData.filter(i => i.cs === 'done').length}</div><div class="stat-label">✅ تم</div></div>
+                <div class="stat-card"><div class="stat-number">${tableData.filter(i => i.cs === 'pending').length}</div><div class="stat-label">⏳ قيد التنفيذ</div></div>
+                <div class="stat-card"><div class="stat-number">${tableData.reduce((s, i) => s + parseFloat(i.fullSize || 0), 0).toFixed(0)}</div><div class="stat-label">📏 الحجم الكلي</div></div>
+            `;
+        }
+
+        // تغيير الحالة
+        window.toggleStatus = (index, event) => {
+            if (isLocked) {
+                showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
+                return;
+            }
+            event.stopPropagation();
+            tableData[index].cs = tableData[index].cs === 'done' ? 'pending' : 'done';
+            renderCards();
+            updateStats();
+            backupData();
+            showNotification(`تم التغيير إلى ${tableData[index].cs === 'done' ? '✅ تم' : '⏳ قيد التنفيذ'}`, 'info');
+        };
+
+        // إضافة تصميم مع حقل المصمم
+        window.addNewDesign = () => {
+            const orderName = document.getElementById('orderName').value;
+            const company = document.getElementById('companyName').value;
+            const thickness = document.getElementById('thickness').value;
+            const color = document.getElementById('color').value;
+            const height = document.getElementById('height').value;
+            const width = document.getElementById('width').value;
+            const designer = document.getElementById('designer').value;
+            const surfaceType = document.querySelector('input[name="surfaceType"]:checked').value;
+            
+            if (!orderName || !company || !thickness || !color || !height || !width) 
+                return showNotification('❌ املأ الحقول المطلوبة', 'error');
+            
+            tableData.unshift({
+                no: "4-1-0204",
+                orderName,
+                company, 
+                thickness, 
+                color,
+                surfaceType,
+                designer,
+                startTime: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toISOString().split('T')[0],
+                height, 
+                width,
+                fullSize: (parseFloat(height) * parseFloat(width)).toString(),
+                repPy: document.getElementById('repPy').value,
+                notes: document.getElementById('notes').value || 'لا توجد ملاحظات',
+                cs: document.getElementById('isDone').checked ? 'done' : 'pending'
+            });
+            
+            ['orderName', 'companyName', 'thickness', 'color', 'height', 'width'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('repPy').value = 'fat7y';
+            document.getElementById('designer').value = 'Marwan Elshnawy';
+            document.getElementById('sathi').checked = true;
+            document.getElementById('notes').value = 'تصميم جاهز للتسليم - تمت مراجعته من قبل AhmedMagdy';
+            document.getElementById('isDone').checked = true;
+            
+            renderCards();
+            updateStats();
+            backupData();
+            showNotification('✅ تمت الإضافة', 'success');
+        };
+
+        // حذف تصميم
+        window.deleteDesign = (index, event) => {
+            if (isLocked) {
+                showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
+                return;
+            }
+            event.stopPropagation();
+            if (confirm('حذف التصميم؟')) {
+                tableData.splice(index, 1);
+                renderCards();
+                updateStats();
+                backupData();
+                showNotification('🗑️ تم الحذف', 'warning');
+            }
+        };
+
+        // تعديل تصميم مع حقل المصمم
+        window.editDesign = (index, event) => {
+            if (isLocked) {
+                showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
+                return;
+            }
+            event.stopPropagation();
+            const item = tableData[index];
+            const designers = ['Marwan Elshnawy', 'Metwaly', 'Mohand', 'Karim', 'Abdelrhman okaz', 'saif', 'Ahmed Beso', 'Hany'];
+            
+            editModalBody.innerHTML = `
+                <div class="edit-form">
+                    <div class="edit-field"><label>🔢 اسم الاوردر</label><input type="text" id="editOrderName" value="${item.orderName}"></div>
+                    <div class="edit-field"><label>🏭 الشركة</label><input type="text" id="editCompany" value="${item.company}"></div>
+                    <div class="edit-field"><label>📏 السمك</label><input type="number" id="editThickness" step="0.01" value="${item.thickness}"></div>
+                    <div class="edit-field"><label>🎨 الألوان</label><input type="number" id="editColor" value="${item.color}"></div>
+                    <div class="edit-field"><label>📐 الارتفاع</label><input type="number" id="editHeight" step="0.1" value="${item.height}"></div>
+                    <div class="edit-field"><label>📏 العرض</label><input type="number" id="editWidth" step="0.1" value="${item.width}"></div>
+                    <div class="edit-field">
+                        <label>🖨️ Rep Py</label>
+                        <select id="editRepPy">${['fat7y', 'jana', 'nourhan'].map(r => `<option value="${r}" ${item.repPy === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+                    </div>
+                    <div class="edit-field">
+                        <label>🎨 المصمم</label>
+                        <select id="editDesigner">${designers.map(d => `<option value="${d}" ${item.designer === d ? 'selected' : ''}>${d}</option>`).join('')}</select>
+                    </div>
+                    <div class="edit-field">
+                        <label>🔲 نوع السطح</label>
+                        <div class="radio-group">
+                            <div class="radio-option"><input type="radio" id="editSathi" name="editSurfaceType" value="سطحي" ${item.surfaceType === 'سطحي' ? 'checked' : ''}><label for="editSathi">سطحي</label></div>
+                            <div class="radio-option"><input type="radio" id="editAksi" name="editSurfaceType" value="عكسي" ${item.surfaceType === 'عكسي' ? 'checked' : ''}><label for="editAksi">عكسي</label></div>
+                        </div>
+                    </div>
+                    <div class="edit-field"><label>📝 ملاحظات</label><textarea id="editNotes">${item.notes || ''}</textarea></div>
+                    <div class="checkbox-group"><input type="checkbox" id="editIsDone" ${item.cs === 'done' ? 'checked' : ''}><label for="editIsDone">✅ تم الانتهاء</label></div>
+                    <button class="btn-edit-save" onclick="saveEdit(${index})">💾 حفظ</button>
+                </div>
+            `;
+            editModal.style.display = 'block';
+        };
+
+        window.saveEdit = (index) => {
+            tableData[index] = {
+                ...tableData[index],
+                orderName: document.getElementById('editOrderName').value,
+                company: document.getElementById('editCompany').value,
+                thickness: document.getElementById('editThickness').value,
+                color: document.getElementById('editColor').value,
+                height: document.getElementById('editHeight').value,
+                width: document.getElementById('editWidth').value,
+                repPy: document.getElementById('editRepPy').value,
+                designer: document.getElementById('editDesigner').value,
+                surfaceType: document.querySelector('input[name="editSurfaceType"]:checked').value,
+                notes: document.getElementById('editNotes').value,
+                cs: document.getElementById('editIsDone').checked ? 'done' : 'pending',
+                fullSize: (parseFloat(document.getElementById('editHeight').value) * parseFloat(document.getElementById('editWidth').value)).toString()
+            };
+            renderCards();
+            updateStats();
+            backupData();
+            closeModal('editModal');
+            showNotification('✅ تم الحفظ', 'success');
+        };
+
+        // دوال الفلترة
+        window.filterByDesigner = () => renderCards();
+        window.filterByRepPy = () => renderCards();
+        window.filterBySurface = () => renderCards();
+        window.filterByStatus = () => renderCards();
+
+        // عرض البطاقات مع حقل المصمم
+        function renderCards() {
+            const search = searchInput.value.toLowerCase();
+            const designer = designerFilter.value;
+            const repPy = repPyFilter.value;
+            const surface = surfaceFilter.value;
+            const status = statusFilter.value;
+            
+            let filtered = tableData.filter(item => item.company.toLowerCase().includes(search));
+            if (designer !== 'all') filtered = filtered.filter(i => i.designer === designer);
+            if (repPy !== 'all') filtered = filtered.filter(i => i.repPy === repPy);
+            if (surface !== 'all') filtered = filtered.filter(i => i.surfaceType === surface);
+            if (status !== 'all') filtered = filtered.filter(i => i.cs === status);
+            
+            if (!filtered.length) {
+                cardsContainer.innerHTML = '<div class="no-results">❌ لا توجد نتائج</div>';
+                return;
+            }
+            
+            cardsContainer.innerHTML = filtered.map((item, idx) => {
+                const origIdx = tableData.findIndex(d => d === item);
+                return `
+                <div class="card" onclick="showDetails(${origIdx})">
+                    <div class="card-header">
+                        <h3>${item.company}</h3>
+                        <div class="order-id">📋 ${item.orderName}</div>
+                    </div>
+                    <div class="card-body">
+                        ${[
+                            ['السمك', item.thickness + ' mm'],
+                            ['الألوان', item.color],
+                            ['الارتفاع', item.height],
+                            ['العرض', item.width],
+                            ['Rep Py', item.repPy],
+                            ['المصمم', `<span class="designer-badge">${item.designer}</span>`],
+                            ['نوع السطح', `<span class="surface-badge ${item.surfaceType === 'سطحي' ? 'sathi' : 'aksi'}">${item.surfaceType}</span>`],
+                            ['التاريخ', `<span class="date-badge">${item.date}</span>`]
+                        ].map(([l, v]) => 
+                            `<div class="info-row"><span class="info-label">${l}:</span><span class="info-value">${v}</span></div>`
+                        ).join('')}
+                        <div class="info-row">
+                            <span class="info-label">الحالة:</span>
+                            <button class="status-badge ${item.cs === 'done' ? 'status-done' : 'status-pending'} ${isLocked ? 'disabled' : ''}" onclick="${!isLocked ? `toggleStatus(${origIdx}, event)` : 'showNotification(\'🔒 النظام مقفل\', \'warning\')'}" ${isLocked ? 'disabled' : ''}>${item.cs === 'done' ? '✅ تم' : '⏳ قيد التنفيذ'}</button>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="edit-btn ${isLocked ? 'disabled' : ''}" onclick="${!isLocked ? `editDesign(${origIdx}, event)` : 'showNotification(\'🔒 النظام مقفل\', \'warning\')'}" ${isLocked ? 'disabled' : ''}>✏️ تعديل</button>
+                            <button class="delete-btn ${isLocked ? 'disabled' : ''}" onclick="${!isLocked ? `deleteDesign(${origIdx}, event)` : 'showNotification(\'🔒 النظام مقفل\', \'warning\')'}" ${isLocked ? 'disabled' : ''}>🗑️ حذف</button>
+                        </div>
+                    </div>
+                </div>`}).join('');
+        }
+
+        // عرض التفاصيل مع حقل المصمم
+        window.showDetails = (index) => {
+            const i = tableData[index];
+            modalTitle.textContent = `تفاصيل: ${i.company}`;
+            modalBody.innerHTML = `
+                <div class="details-container">
+                    ${[
+                        ['🔢 اسم الاوردر', i.orderName],
+                        ['🏭 الشركة', i.company],
+                        ['📏 السمك', i.thickness + ' mm'],
+                        ['🎨 الألوان', i.color],
+                        ['⏰ وقت البدء', i.startTime],
+                        ['📅 التاريخ', `<span class="date-badge">${i.date}</span>`],
+                        ['📐 الارتفاع', i.height],
+                        ['📏 العرض', i.width],
+                        ['📦 الحجم الكلي', i.fullSize],
+                        ['🖨️ Rep Py', i.repPy],
+                        ['🎨 المصمم', `<span class="designer-badge" style="padding:8px 25px">${i.designer}</span>`],
+                        ['🔲 نوع السطح', `<span class="surface-badge ${i.surfaceType === 'سطحي' ? 'sathi' : 'aksi'}" style="padding:8px 25px">${i.surfaceType}</span>`],
+                        ['✅ الحالة', `<span style="background:${i.cs === 'done' ? '#4CAF50' : '#ff9800'};color:#fff;padding:8px 25px;border-radius:30px">${i.cs === 'done' ? 'تم' : 'قيد التنفيذ'}</span>`],
+                        ['📝 ملاحظات', `<span class="notes-value">${i.notes || 'لا توجد'}</span>`]
+                    ].map(([l, v]) => 
+                        `<div class="detail-row ${l.includes('الشركة') || l.includes('ملاحظات') ? 'highlight' : ''}"><span class="detail-label">${l}</span><span class="detail-value">${v}</span></div>`
+                    ).join('')}
+                </div>`;
+            detailModal.style.display = 'block';
+        };
+
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+        window.onclick = (e) => { 
+            if (e.target === detailModal) closeModal('detailModal'); 
+            if (e.target === editModal) closeModal('editModal');
+            if (e.target === document.getElementById('passwordModal')) closePasswordModal();
+        };
+
+        searchInput.addEventListener('input', renderCards);
+        designerFilter.addEventListener('change', renderCards);
+        repPyFilter.addEventListener('change', renderCards);
+        surfaceFilter.addEventListener('change', renderCards);
+        statusFilter.addEventListener('change', renderCards);
+
+        // تهيئة
+        updateStats();
+        renderCards();
+        updateLockUI(); // تطبيق حالة القفل الأولية
+        
+        // منع F12 واختصارات التعديل
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+                showNotification('❌ هذه العملية غير مسموح بها', 'error');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>
