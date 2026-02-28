@@ -1339,7 +1339,7 @@
 
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(0%); opacity: 1; }
         }
 
         .back-to-top {
@@ -1395,11 +1395,11 @@
             <div class="header-content">
                 <div class="logo-section" onclick="scrollToTop()" title="العودة للرئيسية">
                     <div class="logo-icon">
-                        <img src="incy.png.jpg" alt="Logo" style="width: 50px; height: 50px; border-radius: 20px;" onerror="this.style.display='none'; this.parentElement.innerHTML='IF'">
+                        <img src="incy.png.jpg" alt="" style="border-radius: 30px; width: 60px; height: 60px;">
                     </div>
                     <div class="logo-text">
-                        <h2>Incl-Flex</h2>
-                        <p>PREPRESS SOLUTIONS FOR PACKAGING</p>
+                        <h2>INCI-FLEXEGYPT</h2>
+                        <p>نظام إدارة التصاميم</p>
                     </div>
                 </div>
                 <div class="header-controls">
@@ -1432,7 +1432,7 @@
             <div class="stats-container" id="statsContainer"></div>
         </header>
 
-        <!-- قسم إدخال البيانات مع الحقل الجديد Designer -->
+        <!-- قسم إدخال البيانات مع الحقل الجديد LPI -->
         <div class="input-section" id="inputSection">
             <h2 class="input-title">➕ إضافة تصميم جديد</h2>
             <div class="form-grid">
@@ -1459,6 +1459,11 @@
                 <div class="form-group">
                     <label>📏 العرض</label>
                     <input type="number" id="width" step="0.1" placeholder="العرض">
+                </div>
+                <!-- حقل LPI الجديد -->
+                <div class="form-group">
+                    <label>🔲 LPI</label>
+                    <input type="number" id="lpi" step="1" placeholder="مثال: 150" value="150">
                 </div>
                 <div class="form-group">
                     <label>🖨️ Rep Py</label>
@@ -1507,7 +1512,7 @@
             <button class="btn-submit" id="submitBtn" onclick="checkAccessAndExecute('addNewDesign')">إضافة التصميم</button>
         </div>
 
-        <!-- قسم البحث مع إضافة فلتر المصمم -->
+        <!-- قسم البحث -->
         <div class="filter-section" id="filterSection">
             <input type="text" class="filter-input" id="searchInput" placeholder="🔍 بحث بالشركة...">
             <select class="filter-select" id="designerFilter" onchange="checkAccessAndExecute('filterByDesigner')">
@@ -1546,7 +1551,7 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="copyright-section">
-                <p>© 2026 جميع الحقوق محفوظة | تم التصميم والتطوير بواسطة <strong class="designer-name">Ahmed Magdy</strong> <span class="no-copy-badge"><span>🚫</span> عدم التقليد <span>🚫</span></span></p>
+                <p>© 2026 جميع الحقوق محفوظة | تم التصميم والتطوير بواسطة <strong class="designer-name">Ahmed Magdy</strong></p>
             </div>
         </div>
     </footer>
@@ -1590,17 +1595,8 @@
     </div>
 
     <script>
-        // حماية بسيطة
-        (function() {
-            document.addEventListener('contextmenu', e => { e.preventDefault(); showNotification('❌ لا يمكنك نسخ المحتوى', 'error'); });
-            document.addEventListener('keydown', e => {
-                if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73,74].includes(e.keyCode)) || (e.ctrlKey && [85,67,86,88].includes(e.keyCode))) {
-                    e.preventDefault();
-                    showNotification('❌ هذه العملية غير مسموح بها', 'error');
-                }
-            });
-            setInterval(() => console.clear(), 1000);
-        })();
+        // تنظيف الكونسول فقط
+        setInterval(() => console.clear(), 1000);
 
         // المتغيرات العامة
         let salawatCounter = 0;
@@ -1618,6 +1614,7 @@
                 date: "2026-02-27", 
                 height: "14", 
                 width: "3.5", 
+                lpi: "150",
                 fullSize: "142", 
                 repPy: "fat7y",
                 designer: "Marwan Elshnawy",
@@ -1635,6 +1632,7 @@
                 date: "2026-02-27", 
                 height: "59.5", 
                 width: "66", 
+                lpi: "150",
                 fullSize: "3927", 
                 repPy: "jana",
                 designer: "Metwaly",
@@ -1652,6 +1650,7 @@
                 date: "2026-02-27", 
                 height: "29", 
                 width: "13", 
+                lpi: "175",
                 fullSize: "754", 
                 repPy: "nourhan",
                 designer: "Mohand",
@@ -1669,6 +1668,7 @@
                 date: "2026-02-27", 
                 height: "62", 
                 width: "112", 
+                lpi: "200",
                 fullSize: "41664", 
                 repPy: "fat7y",
                 designer: "Karim",
@@ -1825,33 +1825,38 @@
 
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 
-        // تصدير Excel مع إضافة حقل المصمم
+        // تصدير Excel مع إضافة الرقم التسلسلي كأرقام متتالية 1، 2، 3، ...
         window.exportToExcel = () => {
             try {
-                const data = tableData.map(item => ({
+                const data = tableData.map((item, index) => ({
+                    'الرقم التسلسلي': index + 1, // ترقيم متتالي 1، 2، 3، ...
+                    'الوقت': item.startTime,
+                    'التاريخ': item.date,
+                    'LPI': item.lpi || '150',
                     'اسم الاوردر': item.orderName,
-                    الشركة: item.company,
-                    السمك: item.thickness + ' mm',
-                    الألوان: item.color,
-                    الوقت: item.startTime,
-                    التاريخ: item.date,
-                    الارتفاع: item.height,
-                    العرض: item.width,
+                    'الشركة': item.company,
+                    'السمك': item.thickness + ' mm',
+                    'الألوان': item.color,
+                    'الارتفاع': item.height,
+                    'العرض': item.width,
                     'الحجم الكلي': item.fullSize,
                     'Rep Py': item.repPy,
                     'المصمم': item.designer,
                     'نوع السطح': item.surfaceType,
-                    الحالة: item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
-                    ملاحظات: item.notes || '-'
+                    'الحالة': item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
+                    'ملاحظات': item.notes || '-'
                 }));
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'التصاميم');
                 XLSX.writeFile(wb, `تصاميم_${new Date().toLocaleDateString()}.xlsx`);
                 showNotification('✅ تم التصدير', 'success');
-            } catch { showNotification('❌ خطأ', 'error'); }
+            } catch (error) { 
+                console.log(error);
+                showNotification('❌ خطأ', 'error'); 
+            }
         };
 
-        // تصدير PDF مع إضافة حقل المصمم
+        // تصدير PDF مع إضافة الرقم التسلسلي
         window.exportToPDF = () => {
             try {
                 const { jsPDF } = window.jspdf;
@@ -1859,13 +1864,28 @@
                 doc.text('تقرير التصاميم', 105, 15, { align: 'center' });
                 doc.text(`التاريخ: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
                 doc.autoTable({
-                    head: [['الاوردر', 'الشركة', 'السمك', 'الألوان', 'السطح', 'المصمم', 'الحالة', 'ملاحظات']],
-                    body: tableData.map(item => [item.orderName, item.company, item.thickness + ' mm', item.color, item.surfaceType, item.designer, item.cs === 'done' ? 'تم' : 'قيد التنفيذ', item.notes || '-']),
+                    head: [['تسلسل', 'الوقت', 'التاريخ', 'LPI', 'الاوردر', 'الشركة', 'السمك', 'الألوان', 'السطح', 'المصمم', 'الحالة']],
+                    body: tableData.map((item, index) => [
+                        index + 1, // ترقيم متتالي 1، 2، 3، ...
+                        item.startTime, 
+                        item.date, 
+                        item.lpi || '150',
+                        item.orderName, 
+                        item.company, 
+                        item.thickness + ' mm', 
+                        item.color, 
+                        item.surfaceType, 
+                        item.designer, 
+                        item.cs === 'done' ? 'تم' : 'قيد التنفيذ'
+                    ]),
                     startY: 30
                 });
                 doc.save(`تصاميم_${new Date().toLocaleDateString()}.pdf`);
                 showNotification('✅ تم التصدير', 'success');
-            } catch { showNotification('❌ خطأ', 'error'); }
+            } catch (error) { 
+                console.log(error);
+                showNotification('❌ خطأ', 'error'); 
+            }
         };
 
         // نسخ احتياطي
@@ -1913,7 +1933,7 @@
             showNotification(`تم التغيير إلى ${tableData[index].cs === 'done' ? '✅ تم' : '⏳ قيد التنفيذ'}`, 'info');
         };
 
-        // إضافة تصميم مع حقل المصمم
+        // إضافة تصميم مع حقل LPI
         window.addNewDesign = () => {
             const orderName = document.getElementById('orderName').value;
             const company = document.getElementById('companyName').value;
@@ -1921,6 +1941,7 @@
             const color = document.getElementById('color').value;
             const height = document.getElementById('height').value;
             const width = document.getElementById('width').value;
+            const lpi = document.getElementById('lpi').value || '150';
             const designer = document.getElementById('designer').value;
             const surfaceType = document.querySelector('input[name="surfaceType"]:checked').value;
             
@@ -1933,6 +1954,7 @@
                 company, 
                 thickness, 
                 color,
+                lpi,
                 surfaceType,
                 designer,
                 startTime: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
@@ -1946,6 +1968,7 @@
             });
             
             ['orderName', 'companyName', 'thickness', 'color', 'height', 'width'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('lpi').value = '150';
             document.getElementById('repPy').value = 'fat7y';
             document.getElementById('designer').value = 'Marwan Elshnawy';
             document.getElementById('sathi').checked = true;
@@ -1974,7 +1997,7 @@
             }
         };
 
-        // تعديل تصميم مع حقل المصمم
+        // تعديل تصميم مع حقل LPI
         window.editDesign = (index, event) => {
             if (isLocked) {
                 showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
@@ -1992,6 +2015,7 @@
                     <div class="edit-field"><label>🎨 الألوان</label><input type="number" id="editColor" value="${item.color}"></div>
                     <div class="edit-field"><label>📐 الارتفاع</label><input type="number" id="editHeight" step="0.1" value="${item.height}"></div>
                     <div class="edit-field"><label>📏 العرض</label><input type="number" id="editWidth" step="0.1" value="${item.width}"></div>
+                    <div class="edit-field"><label>🔲 LPI</label><input type="number" id="editLpi" step="1" value="${item.lpi || '150'}"></div>
                     <div class="edit-field">
                         <label>🖨️ Rep Py</label>
                         <select id="editRepPy">${['fat7y', 'jana', 'nourhan'].map(r => `<option value="${r}" ${item.repPy === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
@@ -2024,6 +2048,7 @@
                 color: document.getElementById('editColor').value,
                 height: document.getElementById('editHeight').value,
                 width: document.getElementById('editWidth').value,
+                lpi: document.getElementById('editLpi').value || '150',
                 repPy: document.getElementById('editRepPy').value,
                 designer: document.getElementById('editDesigner').value,
                 surfaceType: document.querySelector('input[name="editSurfaceType"]:checked').value,
@@ -2044,7 +2069,7 @@
         window.filterBySurface = () => renderCards();
         window.filterByStatus = () => renderCards();
 
-        // عرض البطاقات مع حقل المصمم
+        // عرض البطاقات مع حقل LPI
         function renderCards() {
             const search = searchInput.value.toLowerCase();
             const designer = designerFilter.value;
@@ -2075,6 +2100,7 @@
                         ${[
                             ['السمك', item.thickness + ' mm'],
                             ['الألوان', item.color],
+                            ['LPI', item.lpi || '150'],
                             ['الارتفاع', item.height],
                             ['العرض', item.width],
                             ['Rep Py', item.repPy],
@@ -2096,7 +2122,7 @@
                 </div>`}).join('');
         }
 
-        // عرض التفاصيل مع حقل المصمم
+        // عرض التفاصيل مع حقل LPI
         window.showDetails = (index) => {
             const i = tableData[index];
             modalTitle.textContent = `تفاصيل: ${i.company}`;
@@ -2107,6 +2133,7 @@
                         ['🏭 الشركة', i.company],
                         ['📏 السمك', i.thickness + ' mm'],
                         ['🎨 الألوان', i.color],
+                        ['🔲 LPI', i.lpi || '150'],
                         ['⏰ وقت البدء', i.startTime],
                         ['📅 التاريخ', `<span class="date-badge">${i.date}</span>`],
                         ['📐 الارتفاع', i.height],
@@ -2141,16 +2168,6 @@
         updateStats();
         renderCards();
         updateLockUI(); // تطبيق حالة القفل الأولية
-        
-        // منع F12 واختصارات التعديل
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'U')) {
-                e.preventDefault();
-                showNotification('❌ هذه العملية غير مسموح بها', 'error');
-                return false;
-            }
-        });
     </script>
 </body>
-
 </html>
