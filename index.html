@@ -1432,21 +1432,29 @@
             <div class="stats-container" id="statsContainer"></div>
         </header>
 
-        <!-- قسم إدخال البيانات مع الحقل الجديد LPI -->
+        <!-- قسم إدخال البيانات مع حقل LPI -->
         <div class="input-section" id="inputSection">
             <h2 class="input-title">➕ إضافة تصميم جديد</h2>
             <div class="form-grid">
-                <div class="form-group">
-                    <label>🔢 اسم الاوردر</label>
-                    <input type="text" id="orderName" placeholder="أدخل اسم الاوردر">
-                </div>
+                <!-- تم تغيير الترتيب: الشركة أولاً -->
                 <div class="form-group">
                     <label>🏭 اسم الشركة</label>
                     <input type="text" id="companyName" placeholder="أدخل اسم الشركة">
                 </div>
                 <div class="form-group">
+                    <label>🔢 اسم الاوردر</label>
+                    <input type="text" id="orderName" placeholder="أدخل اسم الاوردر">
+                </div>
+                <!-- السمك أصبح قائمة منسدلة -->
+                <div class="form-group">
                     <label>📏 السمك (mm)</label>
-                    <input type="number" id="thickness" step="0.01" placeholder="مثال: 2.54">
+                    <select id="thickness">
+                        <option value="1.14">1.14 mm</option>
+                        <option value="1.7">1.7 mm</option>
+                        <option value="2.54" selected>2.54 mm</option>
+                        <option value="2.84">2.84 mm</option>
+                        <option value="3.94">3.94 mm</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>🎨 عدد الألوان</label>
@@ -1601,7 +1609,7 @@
         // المتغيرات العامة
         let salawatCounter = 0;
         let isLocked = true; // النظام مقفل افتراضياً
-        const CORRECT_PASSWORD = "20011810"; // كلمة المرور الصحيحة
+        const CORRECT_PASSWORD = "a@123456";
         
         let tableData = [
             { 
@@ -1935,8 +1943,8 @@
 
         // إضافة تصميم مع حقل LPI
         window.addNewDesign = () => {
-            const orderName = document.getElementById('orderName').value;
             const company = document.getElementById('companyName').value;
+            const orderName = document.getElementById('orderName').value;
             const thickness = document.getElementById('thickness').value;
             const color = document.getElementById('color').value;
             const height = document.getElementById('height').value;
@@ -1945,7 +1953,7 @@
             const designer = document.getElementById('designer').value;
             const surfaceType = document.querySelector('input[name="surfaceType"]:checked').value;
             
-            if (!orderName || !company || !thickness || !color || !height || !width) 
+            if (!company || !orderName || !thickness || !color || !height || !width) 
                 return showNotification('❌ املأ الحقول المطلوبة', 'error');
             
             tableData.unshift({
@@ -1967,7 +1975,8 @@
                 cs: document.getElementById('isDone').checked ? 'done' : 'pending'
             });
             
-            ['orderName', 'companyName', 'thickness', 'color', 'height', 'width'].forEach(id => document.getElementById(id).value = '');
+            ['companyName', 'orderName', 'color', 'height', 'width'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('thickness').value = '2.54'; // إعادة تعيين السمك للقيمة الافتراضية
             document.getElementById('lpi').value = '150';
             document.getElementById('repPy').value = 'fat7y';
             document.getElementById('designer').value = 'Marwan Elshnawy';
@@ -2006,12 +2015,18 @@
             event.stopPropagation();
             const item = tableData[index];
             const designers = ['Marwan Elshnawy', 'Metwaly', 'Mohand', 'Karim', 'Abdelrhman okaz', 'saif', 'Ahmed Beso', 'Hany'];
+            const thicknessValues = ['1.14', '1.7', '2.54', '2.84', '3.94'];
             
             editModalBody.innerHTML = `
                 <div class="edit-form">
-                    <div class="edit-field"><label>🔢 اسم الاوردر</label><input type="text" id="editOrderName" value="${item.orderName}"></div>
                     <div class="edit-field"><label>🏭 الشركة</label><input type="text" id="editCompany" value="${item.company}"></div>
-                    <div class="edit-field"><label>📏 السمك</label><input type="number" id="editThickness" step="0.01" value="${item.thickness}"></div>
+                    <div class="edit-field"><label>🔢 اسم الاوردر</label><input type="text" id="editOrderName" value="${item.orderName}"></div>
+                    <div class="edit-field">
+                        <label>📏 السمك</label>
+                        <select id="editThickness">
+                            ${thicknessValues.map(t => `<option value="${t}" ${item.thickness === t ? 'selected' : ''}>${t} mm</option>`).join('')}
+                        </select>
+                    </div>
                     <div class="edit-field"><label>🎨 الألوان</label><input type="number" id="editColor" value="${item.color}"></div>
                     <div class="edit-field"><label>📐 الارتفاع</label><input type="number" id="editHeight" step="0.1" value="${item.height}"></div>
                     <div class="edit-field"><label>📏 العرض</label><input type="number" id="editWidth" step="0.1" value="${item.width}"></div>
@@ -2042,8 +2057,8 @@
         window.saveEdit = (index) => {
             tableData[index] = {
                 ...tableData[index],
-                orderName: document.getElementById('editOrderName').value,
                 company: document.getElementById('editCompany').value,
+                orderName: document.getElementById('editOrderName').value,
                 thickness: document.getElementById('editThickness').value,
                 color: document.getElementById('editColor').value,
                 height: document.getElementById('editHeight').value,
@@ -2129,8 +2144,8 @@
             modalBody.innerHTML = `
                 <div class="details-container">
                     ${[
-                        ['🔢 اسم الاوردر', i.orderName],
                         ['🏭 الشركة', i.company],
+                        ['🔢 اسم الاوردر', i.orderName],
                         ['📏 السمك', i.thickness + ' mm'],
                         ['🎨 الألوان', i.color],
                         ['🔲 LPI', i.lpi || '150'],
