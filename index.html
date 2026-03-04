@@ -257,7 +257,7 @@
 
         .stats-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-top: 20px;
             position: relative;
@@ -267,7 +267,7 @@
         .stat-card {
             background: var(--stat-card-bg);
             color: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 15px;
             font-weight: bold;
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
@@ -294,12 +294,12 @@
         }
 
         .stat-card .stat-number {
-            font-size: 2em;
+            font-size: 1.8em;
             margin-bottom: 5px;
         }
 
         .stat-card .stat-label {
-            font-size: 0.9em;
+            font-size: 0.85em;
             opacity: 0.9;
         }
 
@@ -1471,7 +1471,7 @@
                 <!-- حقل LPI الجديد -->
                 <div class="form-group">
                     <label>🔲 LPI</label>
-                    <input type="number" id="lpi" step="1" placeholder="مثال: 150" value="150">
+                    <input type="number" id="lpi" step="1" placeholder="مثال: 150" value="0">
                 </div>
                 <div class="form-group">
                     <label>🖨️ Rep Py</label>
@@ -1833,26 +1833,51 @@
 
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 
-        // تصدير Excel مع إضافة الرقم التسلسلي كأرقام متتالية 1، 2، 3، ...
+        // تحديث الإحصائيات - تم التعديل هنا
+        function updateStats() {
+            const totalOrders = tableData.length;
+            const totalCompanies = [...new Set(tableData.map(i => i.company))].length;
+            const doneCount = tableData.filter(i => i.cs === 'done').length;
+            const pendingCount = tableData.filter(i => i.cs === 'pending').length;
+            const totalSize = tableData.reduce((s, i) => s + parseFloat(i.fullSize || 0), 0).toFixed(0);
+            
+            // إحصائيات السمك
+            const thickness394 = tableData.filter(i => i.thickness === '3.94').length;
+            const thickness254 = tableData.filter(i => i.thickness === '2.54').length;
+            const thickness114 = tableData.filter(i => i.thickness === '1.14').length;
+            const thickness17 = tableData.filter(i => i.thickness === '1.7').length;
+            
+            statsContainer.innerHTML = `
+                <div class="stat-card"><div class="stat-number">${totalOrders}</div><div class="stat-label">📦 عدد الأوردارات</div></div>
+                <div class="stat-card"><div class="stat-number">${totalCompanies}</div><div class="stat-label">🏭 عدد الشركات</div></div>
+                <div class="stat-card"><div class="stat-number">${doneCount}</div><div class="stat-label">✅ تم</div></div>
+                <div class="stat-card"><div class="stat-number">${pendingCount}</div><div class="stat-label">⏳ قيد التنفيذ</div></div>
+                <div class="stat-card"><div class="stat-number">${totalSize}</div><div class="stat-label">📏 الحجم الكلي</div></div>
+                <div class="stat-card"><div class="stat-number">${thickness394}</div><div class="stat-label">📏 سمك 3.94 مم</div></div>
+                <div class="stat-card"><div class="stat-number">${thickness254}</div><div class="stat-label">📏 سمك 2.54 مم</div></div>
+                <div class="stat-card"><div class="stat-number">${thickness114}</div><div class="stat-label">📏 سمك 1.14 مم</div></div>
+                <div class="stat-card"><div class="stat-number">${thickness17}</div><div class="stat-label">📏 سمك 1.7 مم</div></div>
+            `;
+        }
+
+        // تصدير Excel مع الترتيب الجديد
         window.exportToExcel = () => {
             try {
                 const data = tableData.map((item, index) => ({
-                    'الرقم التسلسلي': index + 1, // ترقيم متتالي 1، 2، 3، ...
-                    'الوقت': item.startTime,
+                    'التسلسل': index + 1,
                     'التاريخ': item.date,
-                    'LPI': item.lpi || '150',
-                    'اسم الاوردر': item.orderName,
+                    'الوقت': item.startTime,
                     'الشركة': item.company,
+                    'اسم الاوردر': item.orderName,
                     'السمك': item.thickness + ' mm',
-                    'الألوان': item.color,
+                    'LPI': item.lpi || '150',
                     'الارتفاع': item.height,
                     'العرض': item.width,
+                    'الألوان': item.color,
                     'الحجم الكلي': item.fullSize,
-                    'Rep Py': item.repPy,
-                    'المصمم': item.designer,
-                    'نوع السطح': item.surfaceType,
                     'الحالة': item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
-                    'ملاحظات': item.notes || '-'
+                    'نوع السطح': item.surfaceType,
+                    'الملاحظات': item.notes || '-'
                 }));
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'التصاميم');
@@ -1864,7 +1889,7 @@
             }
         };
 
-        // تصدير PDF مع إضافة الرقم التسلسلي
+        // تصدير PDF (مع الحفاظ على الترتيب الجديد في المستند)
         window.exportToPDF = () => {
             try {
                 const { jsPDF } = window.jspdf;
@@ -1872,19 +1897,21 @@
                 doc.text('تقرير التصاميم', 105, 15, { align: 'center' });
                 doc.text(`التاريخ: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
                 doc.autoTable({
-                    head: [['تسلسل', 'الوقت', 'التاريخ', 'LPI', 'الاوردر', 'الشركة', 'السمك', 'الألوان', 'السطح', 'المصمم', 'الحالة']],
+                    head: [['تسلسل', 'التاريخ', 'الوقت', 'الشركة', 'الاوردر', 'السمك', 'LPI', 'الارتفاع', 'العرض', 'الألوان', 'الحجم', 'الحالة', 'السطح']],
                     body: tableData.map((item, index) => [
-                        index + 1, // ترقيم متتالي 1، 2، 3، ...
-                        item.startTime, 
-                        item.date, 
+                        index + 1,
+                        item.date,
+                        item.startTime,
+                        item.company,
+                        item.orderName,
+                        item.thickness + ' mm',
                         item.lpi || '150',
-                        item.orderName, 
-                        item.company, 
-                        item.thickness + ' mm', 
-                        item.color, 
-                        item.surfaceType, 
-                        item.designer, 
-                        item.cs === 'done' ? 'تم' : 'قيد التنفيذ'
+                        item.height,
+                        item.width,
+                        item.color,
+                        item.fullSize,
+                        item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
+                        item.surfaceType
                     ]),
                     startY: 30
                 });
@@ -1915,17 +1942,6 @@
                 showNotification('✅ تم الاستعادة', 'success');
             }
         };
-
-        // تحديث الإحصائيات
-        function updateStats() {
-            statsContainer.innerHTML = `
-                <div class="stat-card"><div class="stat-number">${tableData.length}</div><div class="stat-label">📦 إجمالي التصاميم</div></div>
-                <div class="stat-card"><div class="stat-number">${[...new Set(tableData.map(i => i.company))].length}</div><div class="stat-label">🏭 عدد الشركات</div></div>
-                <div class="stat-card"><div class="stat-number">${tableData.filter(i => i.cs === 'done').length}</div><div class="stat-label">✅ تم</div></div>
-                <div class="stat-card"><div class="stat-number">${tableData.filter(i => i.cs === 'pending').length}</div><div class="stat-label">⏳ قيد التنفيذ</div></div>
-                <div class="stat-card"><div class="stat-number">${tableData.reduce((s, i) => s + parseFloat(i.fullSize || 0), 0).toFixed(0)}</div><div class="stat-label">📏 الحجم الكلي</div></div>
-            `;
-        }
 
         // تغيير الحالة
         window.toggleStatus = (index, event) => {
