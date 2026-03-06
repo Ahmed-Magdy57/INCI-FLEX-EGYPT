@@ -1432,11 +1432,10 @@
             <div class="stats-container" id="statsContainer"></div>
         </header>
 
-        <!-- قسم إدخال البيانات مع حقل LPI -->
+        <!-- قسم إدخال البيانات مع حقل LPI بقيمة افتراضية 0 -->
         <div class="input-section" id="inputSection">
             <h2 class="input-title">➕ إضافة تصميم جديد</h2>
             <div class="form-grid">
-                <!-- تم تغيير الترتيب: الشركة أولاً -->
                 <div class="form-group">
                     <label>🏭 اسم الشركة</label>
                     <input type="text" id="companyName" placeholder="أدخل اسم الشركة">
@@ -1445,7 +1444,6 @@
                     <label>🔢 اسم الاوردر</label>
                     <input type="text" id="orderName" placeholder="أدخل اسم الاوردر">
                 </div>
-                <!-- السمك أصبح قائمة منسدلة -->
                 <div class="form-group">
                     <label>📏 السمك (mm)</label>
                     <select id="thickness">
@@ -1468,10 +1466,10 @@
                     <label>📏 العرض</label>
                     <input type="number" id="width" step="0.1" placeholder="العرض">
                 </div>
-                <!-- حقل LPI الجديد -->
+                <!-- حقل LPI بقيمة افتراضية 0 -->
                 <div class="form-group">
                     <label>🔲 LPI</label>
-                    <input type="number" id="lpi" step="1" placeholder="مثال: 150" value="0">
+                    <input type="number" id="lpi" step="1" placeholder="مثال: 0" value="0">
                 </div>
                 <div class="form-group">
                     <label>🖨️ Rep Py</label>
@@ -1520,9 +1518,9 @@
             <button class="btn-submit" id="submitBtn" onclick="checkAccessAndExecute('addNewDesign')">إضافة التصميم</button>
         </div>
 
-        <!-- قسم البحث -->
+        <!-- قسم البحث - تم تعديل placeholder -->
         <div class="filter-section" id="filterSection">
-            <input type="text" class="filter-input" id="searchInput" placeholder="🔍 بحث بالشركة...">
+            <input type="text" class="filter-input" id="searchInput" placeholder="🔍 بحث بالشركة أو اسم الاوردر...">
             <select class="filter-select" id="designerFilter" onchange="checkAccessAndExecute('filterByDesigner')">
                 <option value="all">جميع المصممين</option>
                 <option value="Marwan Elshnawy">Marwan Elshnawy</option>
@@ -1611,6 +1609,7 @@
         let isLocked = true; // النظام مقفل افتراضياً
         const CORRECT_PASSWORD = "a@123456";
         
+        // بيانات تجريبية - تم تعديل LPI ليكون 0
         let tableData = [
             { 
                 no: "4-1-0204", 
@@ -1622,7 +1621,7 @@
                 date: "2026-02-27", 
                 height: "14", 
                 width: "3.5", 
-                lpi: "150",
+                lpi: "0",
                 fullSize: "142", 
                 repPy: "fat7y",
                 designer: "Marwan Elshnawy",
@@ -1640,7 +1639,7 @@
                 date: "2026-02-27", 
                 height: "59.5", 
                 width: "66", 
-                lpi: "150",
+                lpi: "0",
                 fullSize: "3927", 
                 repPy: "jana",
                 designer: "Metwaly",
@@ -1658,7 +1657,7 @@
                 date: "2026-02-27", 
                 height: "29", 
                 width: "13", 
-                lpi: "175",
+                lpi: "0",
                 fullSize: "754", 
                 repPy: "nourhan",
                 designer: "Mohand",
@@ -1676,7 +1675,7 @@
                 date: "2026-02-27", 
                 height: "62", 
                 width: "112", 
-                lpi: "200",
+                lpi: "0",
                 fullSize: "41664", 
                 repPy: "fat7y",
                 designer: "Karim",
@@ -1860,6 +1859,13 @@
             `;
         }
 
+        // دالة للتحقق من وجود اسم الاوردر مكرر (جديد)
+        function isOrderNameExists(orderName, excludeIndex = -1) {
+            return tableData.some((item, index) => 
+                index !== excludeIndex && item.orderName.toLowerCase() === orderName.toLowerCase()
+            );
+        }
+
         // تصدير Excel مع الترتيب الجديد
         window.exportToExcel = () => {
             try {
@@ -1870,7 +1876,7 @@
                     'الشركة': item.company,
                     'اسم الاوردر': item.orderName,
                     'السمك': item.thickness + ' mm',
-                    'LPI': item.lpi || '150',
+                    'LPI': item.lpi || '0',
                     'الارتفاع': item.height,
                     'العرض': item.width,
                     'الألوان': item.color,
@@ -1889,7 +1895,7 @@
             }
         };
 
-        // تصدير PDF (مع الحفاظ على الترتيب الجديد في المستند)
+        // تصدير PDF
         window.exportToPDF = () => {
             try {
                 const { jsPDF } = window.jspdf;
@@ -1905,7 +1911,7 @@
                         item.company,
                         item.orderName,
                         item.thickness + ' mm',
-                        item.lpi || '150',
+                        item.lpi || '0',
                         item.height,
                         item.width,
                         item.color,
@@ -1957,7 +1963,7 @@
             showNotification(`تم التغيير إلى ${tableData[index].cs === 'done' ? '✅ تم' : '⏳ قيد التنفيذ'}`, 'info');
         };
 
-        // إضافة تصميم مع حقل LPI
+        // إضافة تصميم مع حقل LPI بقيمة افتراضية 0 ومنع تكرار اسم الاوردر
         window.addNewDesign = () => {
             const company = document.getElementById('companyName').value;
             const orderName = document.getElementById('orderName').value;
@@ -1965,12 +1971,17 @@
             const color = document.getElementById('color').value;
             const height = document.getElementById('height').value;
             const width = document.getElementById('width').value;
-            const lpi = document.getElementById('lpi').value || '150';
+            const lpi = document.getElementById('lpi').value || '0'; // القيمة الافتراضية 0
             const designer = document.getElementById('designer').value;
             const surfaceType = document.querySelector('input[name="surfaceType"]:checked').value;
             
             if (!company || !orderName || !thickness || !color || !height || !width) 
                 return showNotification('❌ املأ الحقول المطلوبة', 'error');
+            
+            // التحقق من تكرار اسم الاوردر (جديد)
+            if (isOrderNameExists(orderName)) {
+                return showNotification('❌ اسم الاوردر موجود مسبقاً! لا يمكن التكرار', 'error');
+            }
             
             tableData.unshift({
                 no: "4-1-0204",
@@ -1992,8 +2003,8 @@
             });
             
             ['companyName', 'orderName', 'color', 'height', 'width'].forEach(id => document.getElementById(id).value = '');
-            document.getElementById('thickness').value = '2.54'; // إعادة تعيين السمك للقيمة الافتراضية
-            document.getElementById('lpi').value = '150';
+            document.getElementById('thickness').value = '2.54';
+            document.getElementById('lpi').value = '0'; // إعادة تعيين LPI إلى 0
             document.getElementById('repPy').value = 'fat7y';
             document.getElementById('designer').value = 'Marwan Elshnawy';
             document.getElementById('sathi').checked = true;
@@ -2022,7 +2033,7 @@
             }
         };
 
-        // تعديل تصميم مع حقل LPI
+        // تعديل تصميم مع حقل LPI ومنع تكرار اسم الاوردر
         window.editDesign = (index, event) => {
             if (isLocked) {
                 showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
@@ -2046,7 +2057,7 @@
                     <div class="edit-field"><label>🎨 الألوان</label><input type="number" id="editColor" value="${item.color}"></div>
                     <div class="edit-field"><label>📐 الارتفاع</label><input type="number" id="editHeight" step="0.1" value="${item.height}"></div>
                     <div class="edit-field"><label>📏 العرض</label><input type="number" id="editWidth" step="0.1" value="${item.width}"></div>
-                    <div class="edit-field"><label>🔲 LPI</label><input type="number" id="editLpi" step="1" value="${item.lpi || '150'}"></div>
+                    <div class="edit-field"><label>🔲 LPI</label><input type="number" id="editLpi" step="1" value="${item.lpi || '0'}"></div>
                     <div class="edit-field">
                         <label>🖨️ Rep Py</label>
                         <select id="editRepPy">${['fat7y', 'jana', 'nourhan'].map(r => `<option value="${r}" ${item.repPy === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
@@ -2071,15 +2082,23 @@
         };
 
         window.saveEdit = (index) => {
+            const newOrderName = document.getElementById('editOrderName').value;
+            
+            // التحقق من تكرار اسم الاوردر (جديد)
+            if (isOrderNameExists(newOrderName, index)) {
+                showNotification('❌ اسم الاوردر موجود مسبقاً! لا يمكن التكرار', 'error');
+                return;
+            }
+            
             tableData[index] = {
                 ...tableData[index],
                 company: document.getElementById('editCompany').value,
-                orderName: document.getElementById('editOrderName').value,
+                orderName: newOrderName,
                 thickness: document.getElementById('editThickness').value,
                 color: document.getElementById('editColor').value,
                 height: document.getElementById('editHeight').value,
                 width: document.getElementById('editWidth').value,
-                lpi: document.getElementById('editLpi').value || '150',
+                lpi: document.getElementById('editLpi').value || '0',
                 repPy: document.getElementById('editRepPy').value,
                 designer: document.getElementById('editDesigner').value,
                 surfaceType: document.querySelector('input[name="editSurfaceType"]:checked').value,
@@ -2100,7 +2119,7 @@
         window.filterBySurface = () => renderCards();
         window.filterByStatus = () => renderCards();
 
-        // عرض البطاقات مع حقل LPI
+        // عرض البطاقات مع حقل LPI - تم تعديل البحث ليشمل الشركة واسم الاوردر
         function renderCards() {
             const search = searchInput.value.toLowerCase();
             const designer = designerFilter.value;
@@ -2108,7 +2127,12 @@
             const surface = surfaceFilter.value;
             const status = statusFilter.value;
             
-            let filtered = tableData.filter(item => item.company.toLowerCase().includes(search));
+            // تعديل البحث ليشمل الشركة واسم الاوردر
+            let filtered = tableData.filter(item => 
+                item.company.toLowerCase().includes(search) || 
+                item.orderName.toLowerCase().includes(search)
+            );
+            
             if (designer !== 'all') filtered = filtered.filter(i => i.designer === designer);
             if (repPy !== 'all') filtered = filtered.filter(i => i.repPy === repPy);
             if (surface !== 'all') filtered = filtered.filter(i => i.surfaceType === surface);
@@ -2131,7 +2155,7 @@
                         ${[
                             ['السمك', item.thickness + ' mm'],
                             ['الألوان', item.color],
-                            ['LPI', item.lpi || '150'],
+                            ['LPI', item.lpi || '0'],
                             ['الارتفاع', item.height],
                             ['العرض', item.width],
                             ['Rep Py', item.repPy],
@@ -2164,7 +2188,7 @@
                         ['🔢 اسم الاوردر', i.orderName],
                         ['📏 السمك', i.thickness + ' mm'],
                         ['🎨 الألوان', i.color],
-                        ['🔲 LPI', i.lpi || '150'],
+                        ['🔲 LPI', i.lpi || '0'],
                         ['⏰ وقت البدء', i.startTime],
                         ['📅 التاريخ', `<span class="date-badge">${i.date}</span>`],
                         ['📐 الارتفاع', i.height],
