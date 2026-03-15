@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INCI-FLEXEGYPT - نظام إدارة التصاميم</title>
+    <title>تخطيط ومتابعة - نظام إدارة التصاميم</title>
     <!-- إضافة مكتبات للتصدير -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <style>
+        /* نفس الأنماط السابقة مع إضافة بعض الأنماط الجديدة */
         * {
             margin: 0;
             padding: 0;
@@ -361,6 +362,26 @@
             border: none;
         }
 
+        .db-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: var(--card-bg);
+            border-radius: 30px;
+            font-size: 0.9em;
+            color: var(--text-primary);
+            border: 2px solid #667eea;
+        }
+
+        .db-status.connected {
+            border-color: #4CAF50;
+        }
+
+        .db-status i {
+            font-size: 1.2em;
+        }
+
         /* زر فتح القفل */
         .unlock-btn {
             background: linear-gradient(135deg, #ff6b6b, #ff4757);
@@ -482,7 +503,7 @@
             10%, 20% { transform: scale(1.1) rotate(-5deg); }
         }
 
-        .input-section, .filter-section, .export-toolbar, .edit-btn, .delete-btn, .btn-submit, .backup-btn, .restore-btn, .status-badge[onclick] {
+        .input-section, .filter-section, .export-toolbar, .edit-btn, .delete-btn, .btn-submit, .status-badge[onclick] {
             transition: all 0.3s ease;
         }
 
@@ -635,6 +656,10 @@
             font-weight: bold;
             background: linear-gradient(135deg, #FF6B6B, #FF8E53);
             color: white;
+        }
+
+        .designer-badge.none {
+            background: linear-gradient(135deg, #A0A0A0, #6B6B6B);
         }
 
         .notes-field {
@@ -1419,14 +1444,19 @@
                         <span id="lockIcon">🔒</span>
                         <span id="lockText">مقفل</span>
                     </button>
+                    <!-- مؤشر حالة قاعدة البيانات -->
+                    <div class="db-status" id="dbStatus">
+                        <i>💾</i>
+                        <span>جاري التحميل...</span>
+                    </div>
                 </div>
             </div>
             
             <div class="export-toolbar" id="exportToolbar">
                 <button class="export-btn excel" onclick="checkAccessAndExecute('exportToExcel')"><span>📊</span> تصدير Excel</button>
                 <button class="export-btn pdf" onclick="checkAccessAndExecute('exportToPDF')"><span>📄</span> تصدير PDF</button>
-                <button class="export-btn backup-btn" onclick="checkAccessAndExecute('backupData')"><span>💾</span> نسخ احتياطي</button>
-                <button class="export-btn restore-btn" onclick="checkAccessAndExecute('restoreData')"><span>↩️</span> استعادة البيانات</button>
+                <button class="export-btn backup-btn" onclick="checkAccessAndExecute('backupToIndexedDB')"><span>💾</span> حفظ في IndexedDB</button>
+                <button class="export-btn restore-btn" onclick="checkAccessAndExecute('restoreFromIndexedDB')"><span>↩️</span> تحميل من IndexedDB</button>
             </div>
             
             <div class="stats-container" id="statsContainer"></div>
@@ -1456,7 +1486,7 @@
                 </div>
                 <div class="form-group">
                     <label>🎨 عدد الألوان</label>
-                    <input type="number" id="color" min="1" placeholder="عدد الألوان">
+                    <input type="number" id="color" min="1" placeholder="عدد الألوان" value="1">
                 </div>
                 <div class="form-group">
                     <label>📐 الارتفاع</label>
@@ -1482,6 +1512,7 @@
                 <div class="form-group">
                     <label>🎨 المصمم</label>
                     <select id="designer">
+                        <option value="none" selected>none</option>
                         <option value="Marwan Elshnawy">Marwan Elshnawy</option>
                         <option value="Metwaly">Metwaly</option>
                         <option value="Mohand">Mohand</option>
@@ -1518,11 +1549,12 @@
             <button class="btn-submit" id="submitBtn" onclick="checkAccessAndExecute('addNewDesign')">إضافة التصميم</button>
         </div>
 
-        <!-- قسم البحث - تم تعديل placeholder -->
+        <!-- قسم البحث -->
         <div class="filter-section" id="filterSection">
             <input type="text" class="filter-input" id="searchInput" placeholder="🔍 بحث بالشركة أو اسم الاوردر...">
             <select class="filter-select" id="designerFilter" onchange="checkAccessAndExecute('filterByDesigner')">
                 <option value="all">جميع المصممين</option>
+                <option value="none">none</option>
                 <option value="Marwan Elshnawy">Marwan Elshnawy</option>
                 <option value="Metwaly">Metwaly</option>
                 <option value="Mohand">Mohand</option>
@@ -1609,81 +1641,15 @@
         let isLocked = true; // النظام مقفل افتراضياً
         const CORRECT_PASSWORD = "a@123456";
         
-        // بيانات تجريبية - تم تعديل LPI ليكون 0
-        let tableData = [
-            { 
-                no: "4-1-0204", 
-                orderName: "ORD-001",
-                company: "m.a pack - 81", 
-                thickness: "2.54", 
-                color: "1", 
-                startTime: "8:45 PM", 
-                date: "2026-02-27", 
-                height: "14", 
-                width: "3.5", 
-                lpi: "0",
-                fullSize: "142", 
-                repPy: "fat7y",
-                designer: "Marwan Elshnawy",
-                surfaceType: "سطحي",
-                notes: "تصميم جاهز للتسليم - تمت مراجعته من قبل AhmedMagdy", 
-                cs: "done" 
-            },
-            { 
-                no: "4-1-0204", 
-                orderName: "ORD-002",
-                company: "hany el atripy - 66", 
-                thickness: "1.14", 
-                color: "1", 
-                startTime: "2:35 PM", 
-                date: "2026-02-27", 
-                height: "59.5", 
-                width: "66", 
-                lpi: "0",
-                fullSize: "3927", 
-                repPy: "jana",
-                designer: "Metwaly",
-                surfaceType: "عكسي",
-                notes: "يحتاج مراجعة الألوان والتأكد من مطابقة العينة", 
-                cs: "done" 
-            },
-            { 
-                no: "4-1-0204", 
-                orderName: "ORD-003",
-                company: "hany el atripy - 66", 
-                thickness: "2.54", 
-                color: "2", 
-                startTime: "7:32 PM", 
-                date: "2026-02-27", 
-                height: "29", 
-                width: "13", 
-                lpi: "0",
-                fullSize: "754", 
-                repPy: "nourhan",
-                designer: "Mohand",
-                surfaceType: "سطحي",
-                notes: "تم التعديل حسب طلب العميل - إضافة شعار جديد", 
-                cs: "done" 
-            },
-            { 
-                no: "4-1-0204", 
-                orderName: "ORD-004",
-                company: "osama lashin - 61", 
-                thickness: "1.7", 
-                color: "6", 
-                startTime: "2:35 PM", 
-                date: "2026-02-27", 
-                height: "62", 
-                width: "112", 
-                lpi: "0",
-                fullSize: "41664", 
-                repPy: "fat7y",
-                designer: "Karim",
-                surfaceType: "عكسي",
-                notes: "في انتظار الموافقة النهائية من العميل - تم إرسال المعاينة", 
-                cs: "pending" 
-            }
-        ];
+        // متغيرات IndexedDB
+        let db;
+        const DB_NAME = 'TakhteetWaMutaabaDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'designs';
+        const SALAWAT_STORE = 'settings';
+
+        // بيانات تجريبية
+        let tableData = [];
 
         // عناصر DOM
         const cardsContainer = document.getElementById('cardsContainer');
@@ -1705,6 +1671,284 @@
         const unlockBtn = document.getElementById('unlockBtn');
         const lockIcon = document.getElementById('lockIcon');
         const lockText = document.getElementById('lockText');
+        const dbStatus = document.getElementById('dbStatus');
+
+        // تهيئة IndexedDB
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = (event) => {
+                    console.error('خطأ في فتح قاعدة البيانات:', event.target.error);
+                    updateDBStatus('❌ خطأ', 'error');
+                    reject(event.target.error);
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log('تم فتح قاعدة البيانات بنجاح');
+                    updateDBStatus('✅ متصل', 'connected');
+                    
+                    // تحميل البيانات عند الاتصال
+                    loadFromIndexedDB().then(() => {
+                        resolve(db);
+                    }).catch(error => {
+                        console.error('خطأ في تحميل البيانات:', error);
+                        // استخدام البيانات التجريبية إذا فشل التحميل
+                        loadSampleData();
+                        resolve(db);
+                    });
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    
+                    // إنشاء مخزن التصاميم إذا لم يكن موجوداً
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        store.createIndex('orderName', 'orderName', { unique: true });
+                        store.createIndex('company', 'company', { unique: false });
+                        store.createIndex('designer', 'designer', { unique: false });
+                        store.createIndex('cs', 'cs', { unique: false });
+                        store.createIndex('date', 'date', { unique: false });
+                        console.log('تم إنشاء مخزن التصاميم');
+                    }
+                    
+                    // إنشاء مخزن الإعدادات
+                    if (!db.objectStoreNames.contains(SALAWAT_STORE)) {
+                        const settingStore = db.createObjectStore(SALAWAT_STORE, { keyPath: 'key' });
+                        console.log('تم إنشاء مخزن الإعدادات');
+                    }
+                };
+            });
+        }
+
+        // تحديث حالة قاعدة البيانات
+        function updateDBStatus(text, className) {
+            dbStatus.innerHTML = `<i>💾</i><span>${text}</span>`;
+            dbStatus.className = 'db-status ' + (className || '');
+        }
+
+        // تحميل البيانات من IndexedDB
+        function loadFromIndexedDB() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('قاعدة البيانات غير متصلة'));
+                    return;
+                }
+
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+
+                request.onsuccess = (event) => {
+                    const data = event.target.result;
+                    if (data && data.length > 0) {
+                        tableData = data.map(item => {
+                            // إزالة خاصية id من البيانات للتوافق مع الكود الحالي
+                            const { id, ...rest } = item;
+                            return rest;
+                        });
+                        console.log('تم تحميل', tableData.length, 'تصميم من قاعدة البيانات');
+                    } else {
+                        // إذا كانت قاعدة البيانات فارغة، نستخدم البيانات التجريبية
+                        loadSampleData();
+                    }
+                    
+                    renderCards();
+                    updateStats();
+                    resolve(tableData);
+                };
+
+                request.onerror = (event) => {
+                    console.error('خطأ في تحميل البيانات:', event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        // حفظ البيانات في IndexedDB
+        function saveToIndexedDB() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('قاعدة البيانات غير متصلة'));
+                    return;
+                }
+
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                // مسح جميع البيانات القديمة
+                const clearRequest = store.clear();
+                
+                clearRequest.onsuccess = () => {
+                    // إضافة البيانات الجديدة مع معرفات
+                    let completed = 0;
+                    
+                    if (tableData.length === 0) {
+                        resolve();
+                        return;
+                    }
+                    
+                    tableData.forEach((item, index) => {
+                        // إضافة معرف لكل عنصر
+                        const itemWithId = { ...item, id: index + 1 };
+                        const request = store.add(itemWithId);
+                        
+                        request.onsuccess = () => {
+                            completed++;
+                            if (completed === tableData.length) {
+                                console.log('تم حفظ', tableData.length, 'تصميم في قاعدة البيانات');
+                                resolve();
+                            }
+                        };
+                        
+                        request.onerror = (event) => {
+                            console.error('خطأ في حفظ عنصر:', event.target.error);
+                            reject(event.target.error);
+                        };
+                    });
+                };
+                
+                clearRequest.onerror = (event) => {
+                    console.error('خطأ في مسح البيانات:', event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        // حفظ عداد الصلاة
+        function saveSalawatToDB() {
+            if (!db) return;
+            
+            const transaction = db.transaction([SALAWAT_STORE], 'readwrite');
+            const store = transaction.objectStore(SALAWAT_STORE);
+            store.put({ key: 'salawatCounter', value: salawatCounter });
+        }
+
+        // تحميل عداد الصلاة
+        function loadSalawatFromDB() {
+            if (!db) return;
+            
+            const transaction = db.transaction([SALAWAT_STORE], 'readonly');
+            const store = transaction.objectStore(SALAWAT_STORE);
+            const request = store.get('salawatCounter');
+            
+            request.onsuccess = (event) => {
+                if (event.target.result) {
+                    salawatCounter = event.target.result.value;
+                    document.getElementById('salawatCount').textContent = salawatCounter;
+                }
+            };
+        }
+
+        // حفظ في IndexedDB (نسخ احتياطي)
+        window.backupToIndexedDB = async () => {
+            try {
+                await saveToIndexedDB();
+                saveSalawatToDB();
+                showNotification('✅ تم حفظ البيانات في IndexedDB', 'success');
+            } catch (error) {
+                console.error('خطأ في الحفظ:', error);
+                showNotification('❌ فشل في حفظ البيانات', 'error');
+            }
+        };
+
+        // تحميل من IndexedDB
+        window.restoreFromIndexedDB = async () => {
+            try {
+                await loadFromIndexedDB();
+                loadSalawatFromDB();
+                showNotification('✅ تم تحميل البيانات من IndexedDB', 'success');
+            } catch (error) {
+                console.error('خطأ في التحميل:', error);
+                showNotification('❌ فشل في تحميل البيانات', 'error');
+            }
+        };
+
+        // تحميل بيانات تجريبية
+        function loadSampleData() {
+            const today = new Date().toISOString().split('T')[0];
+            tableData = [
+                { 
+                    no: "4-1-0204", 
+                    orderName: "ORD-001",
+                    company: "m.a pack - 81", 
+                    thickness: "2.54", 
+                    color: "1", 
+                    startTime: "8:45 PM", 
+                    date: today, 
+                    height: "14", 
+                    width: "3.5", 
+                    lpi: "0",
+                    fullSize: "49", 
+                    repPy: "fat7y",
+                    designer: "none",
+                    surfaceType: "سطحي",
+                    notes: "تصميم جاهز للتسليم - تمت مراجعته من قبل AhmedMagdy", 
+                    cs: "done" 
+                },
+                { 
+                    no: "4-1-0204", 
+                    orderName: "ORD-002",
+                    company: "hany el atripy - 66", 
+                    thickness: "1.14", 
+                    color: "1", 
+                    startTime: "2:35 PM", 
+                    date: today, 
+                    height: "59.5", 
+                    width: "66", 
+                    lpi: "0",
+                    fullSize: "3927", 
+                    repPy: "jana",
+                    designer: "Metwaly",
+                    surfaceType: "عكسي",
+                    notes: "يحتاج مراجعة الألوان والتأكد من مطابقة العينة", 
+                    cs: "done" 
+                },
+                { 
+                    no: "4-1-0204", 
+                    orderName: "ORD-003",
+                    company: "hany el atripy - 66", 
+                    thickness: "2.54", 
+                    color: "2", 
+                    startTime: "7:32 PM", 
+                    date: today, 
+                    height: "29", 
+                    width: "13", 
+                    lpi: "0",
+                    fullSize: "754", 
+                    repPy: "nourhan",
+                    designer: "Mohand",
+                    surfaceType: "سطحي",
+                    notes: "تم التعديل حسب طلب العميل - إضافة شعار جديد", 
+                    cs: "done" 
+                },
+                { 
+                    no: "4-1-0204", 
+                    orderName: "ORD-004",
+                    company: "osama lashin - 61", 
+                    thickness: "1.7", 
+                    color: "6", 
+                    startTime: "2:35 PM", 
+                    date: today, 
+                    height: "62", 
+                    width: "112", 
+                    lpi: "0",
+                    fullSize: "41664", 
+                    repPy: "fat7y",
+                    designer: "Karim",
+                    surfaceType: "عكسي",
+                    notes: "في انتظار الموافقة النهائية من العميل - تم إرسال المعاينة", 
+                    cs: "pending" 
+                }
+            ];
+            
+            // حفظ البيانات التجريبية في IndexedDB
+            setTimeout(() => {
+                backupToIndexedDB();
+            }, 1000);
+        }
 
         // دوال مساعدة
         function showNotification(msg, type) {
@@ -1726,6 +1970,7 @@
         window.increaseSalawat = () => {
             salawatCounter++;
             document.getElementById('salawatCount').textContent = salawatCounter;
+            saveSalawatToDB();
             if (salawatCounter % 10 === 0) showNotification(`🌹 ${salawatCounter} مرة صليت على النبي`, 'success');
         };
 
@@ -1733,6 +1978,7 @@
             if (confirm('إعادة تعيين العداد؟')) {
                 salawatCounter = 0;
                 document.getElementById('salawatCount').textContent = '0';
+                saveSalawatToDB();
                 showNotification('تم إعادة التعيين', 'info');
             }
         };
@@ -1804,8 +2050,6 @@
                 filterSection.classList.add('disabled');
                 exportToolbar.classList.add('disabled');
                 submitBtn.classList.add('disabled');
-                
-                // تعطيل أزرار التعديل والحذف في البطاقات (سيتم تطبيقه عند إعادة الرسم)
             } else {
                 // النظام مفتوح
                 lockIcon.textContent = '🔓';
@@ -1832,21 +2076,39 @@
 
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 
-        // تحديث الإحصائيات - تم التعديل هنا
+        // تحديث الإحصائيات - مع إظهار أي سمك جديد
         function updateStats() {
             const totalOrders = tableData.length;
             const totalCompanies = [...new Set(tableData.map(i => i.company))].length;
             const doneCount = tableData.filter(i => i.cs === 'done').length;
             const pendingCount = tableData.filter(i => i.cs === 'pending').length;
+            
+            // حساب مجموع الأحجام الكلية (الارتفاع × العرض)
             const totalSize = tableData.reduce((s, i) => s + parseFloat(i.fullSize || 0), 0).toFixed(0);
             
-            // إحصائيات السمك
+            // إحصائيات السمك - الأساسية
             const thickness394 = tableData.filter(i => i.thickness === '3.94').length;
             const thickness254 = tableData.filter(i => i.thickness === '2.54').length;
             const thickness114 = tableData.filter(i => i.thickness === '1.14').length;
             const thickness17 = tableData.filter(i => i.thickness === '1.7').length;
             
-            statsContainer.innerHTML = `
+            // إحصائيات أي سمك آخر غير المذكور
+            const otherThicknesses = tableData.filter(i => 
+                i.thickness !== '3.94' && 
+                i.thickness !== '2.54' && 
+                i.thickness !== '1.14' && 
+                i.thickness !== '1.7'
+            );
+            
+            // تجميع السماكات الأخرى حسب القيمة
+            const otherThicknessCounts = {};
+            otherThicknesses.forEach(item => {
+                const thick = item.thickness;
+                otherThicknessCounts[thick] = (otherThicknessCounts[thick] || 0) + 1;
+            });
+            
+            // بناء HTML للإحصائيات
+            let statsHTML = `
                 <div class="stat-card"><div class="stat-number">${totalOrders}</div><div class="stat-label">📦 عدد الأوردارات</div></div>
                 <div class="stat-card"><div class="stat-number">${totalCompanies}</div><div class="stat-label">🏭 عدد الشركات</div></div>
                 <div class="stat-card"><div class="stat-number">${doneCount}</div><div class="stat-label">✅ تم</div></div>
@@ -1857,16 +2119,25 @@
                 <div class="stat-card"><div class="stat-number">${thickness114}</div><div class="stat-label">📏 سمك 1.14 مم</div></div>
                 <div class="stat-card"><div class="stat-number">${thickness17}</div><div class="stat-label">📏 سمك 1.7 مم</div></div>
             `;
+            
+            // إضافة السماكات الأخرى إن وجدت
+            for (const [thick, count] of Object.entries(otherThicknessCounts)) {
+                statsHTML += `
+                    <div class="stat-card"><div class="stat-number">${count}</div><div class="stat-label">📏 سمك ${thick} مم</div></div>
+                `;
+            }
+            
+            statsContainer.innerHTML = statsHTML;
         }
 
-        // دالة للتحقق من وجود اسم الاوردر مكرر (جديد)
+        // دالة للتحقق من وجود اسم الاوردر مكرر
         function isOrderNameExists(orderName, excludeIndex = -1) {
             return tableData.some((item, index) => 
                 index !== excludeIndex && item.orderName.toLowerCase() === orderName.toLowerCase()
             );
         }
 
-        // تصدير Excel مع الترتيب الجديد
+        // تصدير Excel مع اسم الملف الجديد
         window.exportToExcel = () => {
             try {
                 const data = tableData.map((item, index) => ({
@@ -1883,11 +2154,16 @@
                     'الحجم الكلي': item.fullSize,
                     'الحالة': item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
                     'نوع السطح': item.surfaceType,
+                    'المصمم': item.designer === 'none' ? 'بدون' : item.designer,
                     'الملاحظات': item.notes || '-'
                 }));
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'التصاميم');
-                XLSX.writeFile(wb, `تصاميم_${new Date().toLocaleDateString()}.xlsx`);
+                
+                // اسم الملف: تخطيط ومتابعة + التاريخ
+                const today = new Date();
+                const dateStr = today.toLocaleDateString('ar-EG').replace(/\//g, '-');
+                XLSX.writeFile(wb, `تخطيط ومتابعة ${dateStr}.xlsx`);
                 showNotification('✅ تم التصدير', 'success');
             } catch (error) { 
                 console.log(error);
@@ -1895,15 +2171,15 @@
             }
         };
 
-        // تصدير PDF
+        // تصدير PDF مع اسم الملف الجديد
         window.exportToPDF = () => {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                doc.text('تقرير التصاميم', 105, 15, { align: 'center' });
-                doc.text(`التاريخ: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
+                doc.text('تقرير التصاميم - تخطيط ومتابعة', 105, 15, { align: 'center' });
+                doc.text(`التاريخ: ${new Date().toLocaleDateString('ar-EG')}`, 105, 22, { align: 'center' });
                 doc.autoTable({
-                    head: [['تسلسل', 'التاريخ', 'الوقت', 'الشركة', 'الاوردر', 'السمك', 'LPI', 'الارتفاع', 'العرض', 'الألوان', 'الحجم', 'الحالة', 'السطح']],
+                    head: [['تسلسل', 'التاريخ', 'الوقت', 'الشركة', 'الاوردر', 'السمك', 'LPI', 'الارتفاع', 'العرض', 'الألوان', 'الحجم', 'الحالة', 'السطح', 'المصمم']],
                     body: tableData.map((item, index) => [
                         index + 1,
                         item.date,
@@ -1917,35 +2193,19 @@
                         item.color,
                         item.fullSize,
                         item.cs === 'done' ? 'تم' : 'قيد التنفيذ',
-                        item.surfaceType
+                        item.surfaceType,
+                        item.designer === 'none' ? 'بدون' : item.designer
                     ]),
                     startY: 30
                 });
-                doc.save(`تصاميم_${new Date().toLocaleDateString()}.pdf`);
+                
+                const today = new Date();
+                const dateStr = today.toLocaleDateString('ar-EG').replace(/\//g, '-');
+                doc.save(`تخطيط ومتابعة ${dateStr}.pdf`);
                 showNotification('✅ تم التصدير', 'success');
             } catch (error) { 
                 console.log(error);
                 showNotification('❌ خطأ', 'error'); 
-            }
-        };
-
-        // نسخ احتياطي
-        window.backupData = () => {
-            localStorage.setItem('flexegypt_backup', JSON.stringify({ data: tableData, salawatCounter, date: new Date().toISOString() }));
-            showNotification('✅ تم النسخ', 'success');
-        };
-
-        window.restoreData = () => {
-            const backup = localStorage.getItem('flexegypt_backup');
-            if (!backup) return showNotification('❌ لا يوجد نسخ', 'warning');
-            const restored = JSON.parse(backup);
-            if (confirm(`استعادة من ${new Date(restored.date).toLocaleString()}؟`)) {
-                tableData = restored.data;
-                salawatCounter = restored.salawatCounter || 0;
-                document.getElementById('salawatCount').textContent = salawatCounter;
-                renderCards();
-                updateStats();
-                showNotification('✅ تم الاستعادة', 'success');
             }
         };
 
@@ -1959,29 +2219,32 @@
             tableData[index].cs = tableData[index].cs === 'done' ? 'pending' : 'done';
             renderCards();
             updateStats();
-            backupData();
+            backupToIndexedDB();
             showNotification(`تم التغيير إلى ${tableData[index].cs === 'done' ? '✅ تم' : '⏳ قيد التنفيذ'}`, 'info');
         };
 
-        // إضافة تصميم مع حقل LPI بقيمة افتراضية 0 ومنع تكرار اسم الاوردر
+        // إضافة تصميم جديد
         window.addNewDesign = () => {
             const company = document.getElementById('companyName').value;
             const orderName = document.getElementById('orderName').value;
             const thickness = document.getElementById('thickness').value;
-            const color = document.getElementById('color').value;
+            const color = document.getElementById('color').value || '1';
             const height = document.getElementById('height').value;
             const width = document.getElementById('width').value;
-            const lpi = document.getElementById('lpi').value || '0'; // القيمة الافتراضية 0
+            const lpi = document.getElementById('lpi').value || '0';
             const designer = document.getElementById('designer').value;
             const surfaceType = document.querySelector('input[name="surfaceType"]:checked').value;
             
-            if (!company || !orderName || !thickness || !color || !height || !width) 
+            if (!company || !orderName || !thickness || !height || !width) 
                 return showNotification('❌ املأ الحقول المطلوبة', 'error');
             
-            // التحقق من تكرار اسم الاوردر (جديد)
+            // التحقق من تكرار اسم الاوردر
             if (isOrderNameExists(orderName)) {
                 return showNotification('❌ اسم الاوردر موجود مسبقاً! لا يمكن التكرار', 'error');
             }
+            
+            // حساب الحجم الكلي
+            const fullSize = (parseFloat(height) * parseFloat(width)).toFixed(0);
             
             tableData.unshift({
                 no: "4-1-0204",
@@ -1996,25 +2259,30 @@
                 date: new Date().toISOString().split('T')[0],
                 height, 
                 width,
-                fullSize: (parseFloat(height) * parseFloat(width)).toString(),
+                fullSize: fullSize,
                 repPy: document.getElementById('repPy').value,
                 notes: document.getElementById('notes').value || 'لا توجد ملاحظات',
                 cs: document.getElementById('isDone').checked ? 'done' : 'pending'
             });
             
-            ['companyName', 'orderName', 'color', 'height', 'width'].forEach(id => document.getElementById(id).value = '');
+            // تنظيف الحقول
+            document.getElementById('companyName').value = '';
+            document.getElementById('orderName').value = '';
+            document.getElementById('color').value = '1';
+            document.getElementById('height').value = '';
+            document.getElementById('width').value = '';
             document.getElementById('thickness').value = '2.54';
-            document.getElementById('lpi').value = '0'; // إعادة تعيين LPI إلى 0
+            document.getElementById('lpi').value = '0';
             document.getElementById('repPy').value = 'fat7y';
-            document.getElementById('designer').value = 'Marwan Elshnawy';
+            document.getElementById('designer').value = 'none';
             document.getElementById('sathi').checked = true;
             document.getElementById('notes').value = 'تصميم جاهز للتسليم - تمت مراجعته من قبل AhmedMagdy';
             document.getElementById('isDone').checked = true;
             
             renderCards();
             updateStats();
-            backupData();
-            showNotification('✅ تمت الإضافة', 'success');
+            backupToIndexedDB();
+            showNotification(`✅ تمت الإضافة - الحجم الكلي: ${fullSize}`, 'success');
         };
 
         // حذف تصميم
@@ -2028,12 +2296,12 @@
                 tableData.splice(index, 1);
                 renderCards();
                 updateStats();
-                backupData();
+                backupToIndexedDB();
                 showNotification('🗑️ تم الحذف', 'warning');
             }
         };
 
-        // تعديل تصميم مع حقل LPI ومنع تكرار اسم الاوردر
+        // تعديل تصميم
         window.editDesign = (index, event) => {
             if (isLocked) {
                 showNotification('🔒 النظام مقفل. يرجى فتح القفل أولاً', 'warning');
@@ -2041,7 +2309,7 @@
             }
             event.stopPropagation();
             const item = tableData[index];
-            const designers = ['Marwan Elshnawy', 'Metwaly', 'Mohand', 'Karim', 'Abdelrhman okaz', 'saif', 'Ahmed Beso', 'Hany'];
+            const designers = ['none', 'Marwan Elshnawy', 'Metwaly', 'Mohand', 'Karim', 'Abdelrhman okaz', 'saif', 'Ahmed Beso', 'Hany'];
             const thicknessValues = ['1.14', '1.7', '2.54', '2.84', '3.94'];
             
             editModalBody.innerHTML = `
@@ -2084,11 +2352,15 @@
         window.saveEdit = (index) => {
             const newOrderName = document.getElementById('editOrderName').value;
             
-            // التحقق من تكرار اسم الاوردر (جديد)
+            // التحقق من تكرار اسم الاوردر
             if (isOrderNameExists(newOrderName, index)) {
                 showNotification('❌ اسم الاوردر موجود مسبقاً! لا يمكن التكرار', 'error');
                 return;
             }
+            
+            const height = parseFloat(document.getElementById('editHeight').value);
+            const width = parseFloat(document.getElementById('editWidth').value);
+            const fullSize = (height * width).toFixed(0);
             
             tableData[index] = {
                 ...tableData[index],
@@ -2096,21 +2368,22 @@
                 orderName: newOrderName,
                 thickness: document.getElementById('editThickness').value,
                 color: document.getElementById('editColor').value,
-                height: document.getElementById('editHeight').value,
-                width: document.getElementById('editWidth').value,
+                height: height.toString(),
+                width: width.toString(),
                 lpi: document.getElementById('editLpi').value || '0',
                 repPy: document.getElementById('editRepPy').value,
                 designer: document.getElementById('editDesigner').value,
                 surfaceType: document.querySelector('input[name="editSurfaceType"]:checked').value,
                 notes: document.getElementById('editNotes').value,
                 cs: document.getElementById('editIsDone').checked ? 'done' : 'pending',
-                fullSize: (parseFloat(document.getElementById('editHeight').value) * parseFloat(document.getElementById('editWidth').value)).toString()
+                fullSize: fullSize
             };
+            
             renderCards();
             updateStats();
-            backupData();
+            backupToIndexedDB();
             closeModal('editModal');
-            showNotification('✅ تم الحفظ', 'success');
+            showNotification(`✅ تم الحفظ - الحجم الكلي الجديد: ${fullSize}`, 'success');
         };
 
         // دوال الفلترة
@@ -2119,7 +2392,7 @@
         window.filterBySurface = () => renderCards();
         window.filterByStatus = () => renderCards();
 
-        // عرض البطاقات مع حقل LPI - تم تعديل البحث ليشمل الشركة واسم الاوردر
+        // عرض البطاقات
         function renderCards() {
             const search = searchInput.value.toLowerCase();
             const designer = designerFilter.value;
@@ -2145,6 +2418,8 @@
             
             cardsContainer.innerHTML = filtered.map((item, idx) => {
                 const origIdx = tableData.findIndex(d => d === item);
+                const designerClass = item.designer === 'none' ? 'none' : '';
+                
                 return `
                 <div class="card" onclick="showDetails(${origIdx})">
                     <div class="card-header">
@@ -2158,8 +2433,9 @@
                             ['LPI', item.lpi || '0'],
                             ['الارتفاع', item.height],
                             ['العرض', item.width],
+                            ['الحجم الكلي', item.fullSize],
                             ['Rep Py', item.repPy],
-                            ['المصمم', `<span class="designer-badge">${item.designer}</span>`],
+                            ['المصمم', `<span class="designer-badge ${designerClass}">${item.designer === 'none' ? 'بدون' : item.designer}</span>`],
                             ['نوع السطح', `<span class="surface-badge ${item.surfaceType === 'سطحي' ? 'sathi' : 'aksi'}">${item.surfaceType}</span>`],
                             ['التاريخ', `<span class="date-badge">${item.date}</span>`]
                         ].map(([l, v]) => 
@@ -2177,7 +2453,7 @@
                 </div>`}).join('');
         }
 
-        // عرض التفاصيل مع حقل LPI
+        // عرض التفاصيل
         window.showDetails = (index) => {
             const i = tableData[index];
             modalTitle.textContent = `تفاصيل: ${i.company}`;
@@ -2195,7 +2471,7 @@
                         ['📏 العرض', i.width],
                         ['📦 الحجم الكلي', i.fullSize],
                         ['🖨️ Rep Py', i.repPy],
-                        ['🎨 المصمم', `<span class="designer-badge" style="padding:8px 25px">${i.designer}</span>`],
+                        ['🎨 المصمم', `<span class="designer-badge" style="padding:8px 25px">${i.designer === 'none' ? 'بدون' : i.designer}</span>`],
                         ['🔲 نوع السطح', `<span class="surface-badge ${i.surfaceType === 'سطحي' ? 'sathi' : 'aksi'}" style="padding:8px 25px">${i.surfaceType}</span>`],
                         ['✅ الحالة', `<span style="background:${i.cs === 'done' ? '#4CAF50' : '#ff9800'};color:#fff;padding:8px 25px;border-radius:30px">${i.cs === 'done' ? 'تم' : 'قيد التنفيذ'}</span>`],
                         ['📝 ملاحظات', `<span class="notes-value">${i.notes || 'لا توجد'}</span>`]
@@ -2219,10 +2495,21 @@
         surfaceFilter.addEventListener('change', renderCards);
         statusFilter.addEventListener('change', renderCards);
 
-        // تهيئة
-        updateStats();
-        renderCards();
-        updateLockUI(); // تطبيق حالة القفل الأولية
+        // تهيئة التطبيق
+        async function initApp() {
+            try {
+                await initIndexedDB();
+                updateLockUI();
+            } catch (error) {
+                console.error('خطأ في تهيئة قاعدة البيانات:', error);
+                showNotification('❌ فشل في الاتصال بقاعدة البيانات', 'error');
+                loadSampleData();
+                updateLockUI();
+            }
+        }
+
+        // بدء التطبيق
+        initApp();
     </script>
 </body>
 </html>
